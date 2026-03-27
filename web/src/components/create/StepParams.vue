@@ -25,16 +25,18 @@
       </el-form-item>
 
       <el-form-item label="初始章节数（后续可继续生成更多章节）">
-        <el-input-number
-          :model-value="numChapters"
-          @update:model-value="(v: any) => $emit('update:numChapters', Number(v) || 5)"
-          :min="1"
-          :max="9999"
-          :step="1"
-          size="large"
-          style="width: 200px"
-        />
-        <span class="form-hint">章节按逐章方式生成，可随时暂停和继续</span>
+        <div class="input-with-hint">
+          <el-input-number
+            :model-value="numChapters"
+            @update:model-value="(v: any) => $emit('update:numChapters', Number(v) || 5)"
+            :min="1"
+            :max="9999"
+            :step="1"
+            size="large"
+            style="width: 200px"
+          />
+          <span class="form-hint">章节按逐章方式生成，可随时暂停和继续</span>
+        </div>
       </el-form-item>
 
       <el-form-item label="主要角色数">
@@ -92,6 +94,10 @@ const genres = ['玄幻', '武侠', '科幻', '言情', '悬疑', '历史', '末
   :deep(.el-form-item__label) {
     color: var(--text-secondary, #aaa);
     font-weight: 500;
+  }
+  .input-with-hint {
+    display: flex;
+    flex-direction: column;
   }
   .form-hint {
     display: block;
