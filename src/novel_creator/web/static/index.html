@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多Agent小说生成系统 V2 — 仪表板</title>
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; }
+
+        /* Header */
+        .header { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); padding: 1rem 2rem; border-bottom: 1px solid #475569; display: flex; align-items: center; justify-content: space-between; }
+        .header h1 { font-size: 1.4rem; display: flex; align-items: center; gap: 0.5rem; }
+        .header-right { display: flex; align-items: center; gap: 1.5rem; }
+        .progress-bar-container { display: flex; align-items: center; gap: 1rem; }
+        .progress-bar { width: 200px; height: 8px; background: #334155; border-radius: 4px; overflow: hidden; }
+        .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #22d3ee); border-radius: 4px; transition: width 0.5s ease; }
+        .progress-text { font-size: 0.85rem; color: #94a3b8; }
+        .status-badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+        .status-idle { background: #1e3a5f; color: #60a5fa; }
+        .status-running { background: #164e63; color: #22d3ee; animation: pulse 2s infinite; }
+        .status-done { background: #14532d; color: #4ade80; }
+        .status-paused { background: #713f12; color: #fbbf24; }
+
+        /* Novel selector */
+        .novel-selector { display: flex; align-items: center; gap: 0.5rem; }
+        .novel-selector label { font-size: 0.85rem; color: #94a3b8; }
+        .novel-selector select {
+            background: #0f172a; color: #e2e8f0; border: 1px solid #475569;
+            padding: 0.35rem 2rem 0.35rem 0.75rem; border-radius: 6px; font-size: 0.85rem;
+            cursor: pointer; appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 0.5rem center;
+        }
+        .novel-selector select:hover { border-color: #60a5fa; }
+        .novel-selector select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.3); }
+
+        /* Main tabs */
+        .main-tabs { display: flex; gap: 0; background: #1e293b; border-bottom: 2px solid #334155; padding: 0 1rem; }
+        .main-tab { padding: 0.75rem 1.25rem; cursor: pointer; font-size: 0.9rem; color: #94a3b8; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; display: flex; align-items: center; gap: 0.4rem; }
+        .main-tab:hover { color: #e2e8f0; background: #334155; }
+        .main-tab.active { color: #60a5fa; border-bottom-color: #3b82f6; }
+
+        /* Tab content */
+        .tab-content { display: none; padding: 1rem; overflow-y: auto; max-height: calc(100vh - 120px); }
+        .tab-content.active { display: block; }
+
+        /* Panels */
+        .panel { background: #1e293b; border-radius: 12px; border: 1px solid #334155; overflow: hidden; margin-bottom: 1rem; }
+        .panel-header { padding: 0.75rem 1.25rem; border-bottom: 1px solid #334155; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem; }
+        .panel-body { padding: 1rem 1.25rem; overflow-y: auto; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+        /* Cards */
+        .card { background: #0f172a; border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem; border-left: 3px solid #3b82f6; }
+        .card .name { color: #60a5fa; font-weight: 600; font-size: 1.05rem; }
+        .card .role { color: #94a3b8; font-size: 0.85rem; }
+        .card .desc { color: #cbd5e1; font-size: 0.85rem; margin-top: 0.5rem; line-height: 1.5; }
+        .card-green { border-left-color: #4ade80; }
+        .card-yellow { border-left-color: #fbbf24; }
+        .card-red { border-left-color: #ef4444; }
+        .card-purple { border-left-color: #a78bfa; }
+        .card-cyan { border-left-color: #22d3ee; }
+
+        /* Network */
+        #network { width: 100%; height: 45vh; }
+
+        /* Volume tree */
+        .volume-item { margin-bottom: 0.75rem; }
+        .volume-title { font-weight: 600; color: #a78bfa; font-size: 1rem; margin-bottom: 0.25rem; }
+        .chapter-item { padding: 0.3rem 0 0.3rem 1.5rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; }
+
+        /* Foreshadow */
+        .fs-item { display: flex; align-items: flex-start; gap: 1rem; padding: 0.5rem 0; border-bottom: 1px solid #1e293b; }
+        .fs-badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+        .fs-planted { background: #14532d; color: #4ade80; }
+        .fs-reinforced { background: #1e3a5f; color: #60a5fa; }
+        .fs-payoff { background: #134e4a; color: #2dd4bf; }
+        .fs-dangling { background: #7f1d1d; color: #fca5a5; }
+        .fs-major { border-left: 3px solid #f59e0b; padding-left: 0.5rem; }
+        .fs-minor { border-left: 3px solid #6b7280; padding-left: 0.5rem; }
+        .fs-twist { border-left: 3px solid #ef4444; padding-left: 0.5rem; }
+
+        /* Thread progress */
+        .thread-bar { height: 6px; background: #334155; border-radius: 3px; margin-top: 0.5rem; overflow: hidden; }
+        .thread-bar-fill { height: 100%; border-radius: 3px; }
+        .thread-active .thread-bar-fill { background: #3b82f6; }
+        .thread-resolved .thread-bar-fill { background: #4ade80; }
+        .thread-suspended .thread-bar-fill { background: #fbbf24; }
+
+        /* Sub tabs */
+        .sub-tabs { display: flex; gap: 0.5rem; padding: 0.75rem 1.25rem; border-bottom: 1px solid #334155; flex-wrap: wrap; }
+        .sub-tab { padding: 0.375rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem; background: transparent; border: 1px solid #475569; color: #94a3b8; transition: all 0.2s; }
+        .sub-tab:hover { border-color: #60a5fa; color: #60a5fa; }
+        .sub-tab.active { background: #3b82f6; border-color: #3b82f6; color: white; }
+
+        /* View mode toggle */
+        .view-toggle { display: flex; gap: 0.25rem; margin-left: auto; }
+        .view-toggle-btn { padding: 0.3rem 0.75rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; background: #0f172a; border: 1px solid #475569; color: #94a3b8; transition: all 0.2s; }
+        .view-toggle-btn:hover { border-color: #60a5fa; }
+        .view-toggle-btn.active { background: #3b82f6; border-color: #3b82f6; color: white; }
+
+        /* Literary text */
+        .literary-text { line-height: 2; color: #d1d5db; font-size: 1rem; white-space: pre-wrap; font-family: 'Noto Serif SC', 'Source Han Serif CN', Georgia, serif; padding: 1rem 0; }
+        .literary-text p { text-indent: 2em; margin-bottom: 0.8em; }
+        .scene-divider { text-align: center; color: #475569; margin: 1.5rem 0; font-size: 0.85rem; letter-spacing: 0.5em; }
+
+        /* Action items */
+        .action-item { padding: 0.5rem 0; border-bottom: 1px solid #1e293b; font-size: 0.85rem; }
+        .action-type { display: inline-block; width: 2rem; text-align: center; }
+
+        /* Novel full text */
+        .novel-container { max-width: 800px; margin: 0 auto; }
+        .novel-title { font-size: 1.8rem; font-weight: 700; text-align: center; margin-bottom: 0.5rem; color: #f1f5f9; font-family: 'Noto Serif SC', Georgia, serif; }
+        .novel-meta { text-align: center; color: #64748b; font-size: 0.85rem; margin-bottom: 2rem; }
+        .chapter-heading { font-size: 1.3rem; font-weight: 600; color: #a78bfa; margin: 2rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #334155; font-family: 'Noto Serif SC', Georgia, serif; }
+        .word-count-badge { background: #334155; color: #94a3b8; padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; margin-left: 0.5rem; font-weight: 400; }
+
+        /* Control */
+        .checkpoint-list { max-height: 30vh; overflow-y: auto; }
+
+        .empty { color: #64748b; text-align: center; padding: 2rem; font-style: italic; }
+        .refresh-btn { background: #334155; border: 1px solid #475569; color: #e2e8f0; padding: 0.35rem 0.75rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+        .refresh-btn:hover { background: #475569; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        .tag { display: inline-block; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.7rem; background: #334155; color: #94a3b8; margin-left: 0.25rem; }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>🎭 多Agent小说生成系统 <span style="font-size:0.7em;color:#94a3b8">V3</span></h1>
+        <div class="header-right">
+            <div class="novel-selector">
+                <label>📚</label>
+                <select id="novel-select" onchange="onNovelSelect(this.value)">
+                    <option value="">加载中...</option>
+                </select>
+            </div>
+            <div class="progress-bar-container">
+                <span class="progress-text" id="progress-text">加载中...</span>
+                <div class="progress-bar"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
+                <span class="status-badge status-idle" id="status-badge">空闲</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 8 Tabs -->
+    <div class="main-tabs">
+        <div class="main-tab active" onclick="switchTab('overview')">📖 概览</div>
+        <div class="main-tab" onclick="switchTab('world')">🌍 世界观</div>
+        <div class="main-tab" onclick="switchTab('characters')">👥 角色</div>
+        <div class="main-tab" onclick="switchTab('timeline')">📅 时间线</div>
+        <div class="main-tab" onclick="switchTab('foreshadows')">📊 伏笔</div>
+        <div class="main-tab" onclick="switchTab('chapters')">📝 章节</div>
+        <div class="main-tab" onclick="switchTab('novel')">📚 成书</div>
+        <div class="main-tab" onclick="switchTab('control')">⚙️ 控制</div>
+    </div>
+
+    <!-- ========== 📖 Overview ========== -->
+    <div class="tab-content active" id="tab-overview">
+        <div class="grid-2">
+            <div class="panel">
+                <div class="panel-header">📖 小说信息</div>
+                <div class="panel-body" id="novel-info"><div class="empty">暂无数据，请先运行生成命令</div></div>
+            </div>
+            <div class="panel">
+                <div class="panel-header">📚 卷→章节结构</div>
+                <div class="panel-body" id="volume-tree"><div class="empty">暂无结构数据</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 🌍 World ========== -->
+    <div class="tab-content" id="tab-world">
+        <div class="grid-2">
+            <div class="panel"><div class="panel-header">⚔️ 力量体系</div><div class="panel-body" id="power-systems"><div class="empty">暂无世界观数据</div></div></div>
+            <div class="panel"><div class="panel-header">🏴 势力组织</div><div class="panel-body" id="factions"><div class="empty">暂无数据</div></div></div>
+            <div class="panel"><div class="panel-header">📍 重要地点</div><div class="panel-body" id="locations"><div class="empty">暂无数据</div></div></div>
+            <div class="panel"><div class="panel-header">📜 历史大事记</div><div class="panel-body" id="history-events"><div class="empty">暂无数据</div></div></div>
+        </div>
+    </div>
+
+    <!-- ========== 👥 Characters ========== -->
+    <div class="tab-content" id="tab-characters">
+        <div class="grid-2">
+            <div class="panel">
+                <div class="panel-header">🔗 角色关系图谱 <button class="refresh-btn" onclick="loadRelationships()" style="margin-left:auto">刷新</button></div>
+                <div id="network"></div>
+            </div>
+            <div class="panel">
+                <div class="panel-header">👥 角色档案</div>
+                <div class="panel-body" id="characters"><div class="empty">暂无角色数据</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 📅 Timeline (V3) ========== -->
+    <div class="tab-content" id="tab-timeline">
+        <div class="grid-2">
+            <div class="panel">
+                <div class="panel-header">📅 时代与事件 <button class="refresh-btn" onclick="loadTimeline()" style="margin-left:auto">刷新</button></div>
+                <div class="panel-body" id="timeline-eras" style="max-height:60vh"><div class="empty">暂无时间线数据</div></div>
+            </div>
+            <div class="panel">
+                <div class="panel-header">🔮 命运决策历史 <button class="refresh-btn" onclick="loadGodDecisions()" style="margin-left:auto">刷新</button></div>
+                <div class="panel-body" id="god-decisions" style="max-height:60vh"><div class="empty">暂无命运决策</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 📊 Foreshadows ========== -->
+    <div class="tab-content" id="tab-foreshadows">
+        <div class="grid-2">
+            <div class="panel">
+                <div class="panel-header">📊 伏笔时间轴 <button class="refresh-btn" onclick="loadForeshadows()" style="margin-left:auto">刷新</button></div>
+                <div class="panel-body" id="foreshadow-list" style="max-height:50vh"><div class="empty">暂无伏笔数据</div></div>
+            </div>
+            <div class="panel">
+                <div class="panel-header">🧵 剧情线进度</div>
+                <div class="panel-body" id="plot-threads"><div class="empty">暂无剧情线数据</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 📝 Chapters (narrative + actions) ========== -->
+    <div class="tab-content" id="tab-chapters">
+        <div class="grid-2">
+            <div class="panel" style="grid-column: 1 / -1">
+                <div class="panel-header">
+                    📝 章节阅读
+                    <div class="view-toggle">
+                        <div class="view-toggle-btn active" id="btn-view-text" onclick="setChapterView('text')">📖 叙事文本</div>
+                        <div class="view-toggle-btn" id="btn-view-actions" onclick="setChapterView('actions')">🎬 行为日志</div>
+                    </div>
+                </div>
+                <div class="sub-tabs" id="chapter-tabs"></div>
+                <div class="panel-body" id="chapter-content" style="max-height:55vh">
+                    <div class="empty">暂无章节数据 — 请先运行 <code>novel-creator generate</code></div>
+                </div>
+            </div>
+        </div>
+        <div class="panel" style="margin-top:1rem">
+            <div class="panel-header">✨ 实时写作 <span id="live-writing-status" style="font-size:0.75rem;color:#94a3b8;margin-left:0.5rem">等待中...</span></div>
+            <div class="panel-body" id="live-writing" style="max-height:30vh;font-family:'Noto Serif SC',Georgia,serif;line-height:1.8;color:#d1d5db;white-space:pre-wrap">
+                <div class="empty">写手Agent输出将在此实时显示</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 📚 Full Novel ========== -->
+    <div class="tab-content" id="tab-novel">
+        <div class="panel">
+            <div class="panel-header">📚 成品小说全文 <button class="refresh-btn" onclick="loadNovelFull()" style="margin-left:auto">刷新</button></div>
+            <div class="panel-body" id="novel-full" style="max-height:75vh">
+                <div class="empty">暂无成品文本 — 请先运行 <code>novel-creator generate</code> 完成至少一章</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== ⚙️ Control ========== -->
+    <div class="tab-content" id="tab-control">
+        <div class="grid-2">
+            <div class="panel">
+                <div class="panel-header">🎮 生成控制</div>
+                <div class="panel-body">
+                    <p style="color:#94a3b8;margin-bottom:1rem;font-size:0.85rem">使用CLI命令控制生成流程。Web仪表板为只读展示。</p>
+                    <div style="background:#0f172a;border-radius:8px;padding:1rem;font-family:monospace;font-size:0.85rem;line-height:1.8">
+                        <div style="color:#4ade80"># 书架管理</div>
+                        <div>novel-creator novels</div>
+                        <div>novel-creator novels create --title "..." --genre "..."</div>
+                        <div>novel-creator novels select &lt;novel_id&gt;</div><br>
+                        <div style="color:#4ade80"># 全量生成</div>
+                        <div>novel-creator generate --chapters 6 --volumes 2</div><br>
+                        <div style="color:#4ade80"># 逐章生成</div>
+                        <div>novel-creator generate --chapter-by-chapter --chapters 4</div><br>
+                        <div style="color:#4ade80"># 恢复生成</div>
+                        <div>novel-creator resume</div><br>
+                        <div style="color:#4ade80"># 查看伏笔报告</div>
+                        <div>novel-creator review</div><br>
+                        <div style="color:#4ade80"># 导出小说</div>
+                        <div>novel-creator novels export &lt;novel_id&gt;</div>
+                    </div>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-header">💾 检查点列表 <button class="refresh-btn" onclick="loadCheckpoints()" style="margin-left:auto">刷新</button></div>
+                <div class="panel-body checkpoint-list" id="checkpoints"><div class="empty">暂无检查点</div></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = '';
+        let currentNovelId = null;   // null = use server-side active novel
+        let currentChapterView = 'text';  // 'text' or 'actions'
+        let currentChapterIndex = null;
+
+        // ========== Novel query param helper ==========
+        function nq(base) {
+            // Append ?novel_id=xxx (or &novel_id=xxx) to an API URL
+            if (!currentNovelId) return base;
+            const sep = base.includes('?') ? '&' : '?';
+            return base + sep + 'novel_id=' + encodeURIComponent(currentNovelId);
+        }
+
+        // ========== Novel selector ==========
+        async function loadNovels() {
+            try {
+                const res = await fetch(`${API}/api/novels`);
+                const d = await res.json();
+                const sel = document.getElementById('novel-select');
+                if (!d.novels || d.novels.length === 0) {
+                    sel.innerHTML = '<option value="">-- 书架为空 --</option>';
+                    currentNovelId = null;
+                    return;
+                }
+                sel.innerHTML = d.novels.map(n => {
+                    const progress = n.chapters_total > 0 ? ` (${n.chapters_completed}/${n.chapters_total})` : '';
+                    const statusIcon = {idle:'⚪',generating:'🔵',paused:'🟡',completed:'🟢'}[n.status]||'';
+                    return `<option value="${n.novel_id}" ${n.novel_id === d.active_novel_id ? 'selected' : ''}>${statusIcon} ${n.title}${progress}</option>`;
+                }).join('');
+                currentNovelId = d.active_novel_id || d.novels[0].novel_id;
+            } catch(e) { console.error('loadNovels', e); }
+        }
+
+        async function onNovelSelect(novelId) {
+            if (!novelId) return;
+            currentNovelId = novelId;
+            // Tell server to switch active novel
+            try {
+                await fetch(`${API}/api/novels/select`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({novel_id: novelId}),
+                });
+            } catch(e) { console.error('selectNovel', e); }
+            // Refresh everything
+            refreshAll();
+        }
+
+        function refreshAll() {
+            loadProgress();
+            loadOverview();
+            // Refresh whichever tab is active
+            const activeTab = document.querySelector('.tab-content.active');
+            if (activeTab) {
+                const id = activeTab.id.replace('tab-', '');
+                if (id === 'world') loadWorld();
+                if (id === 'characters') { loadCharacters(); loadRelationships(); }
+                if (id === 'timeline') { loadTimeline(); loadGodDecisions(); }
+                if (id === 'foreshadows') { loadForeshadows(); loadPlotThreads(); }
+                if (id === 'chapters') loadChapters();
+                if (id === 'novel') loadNovelFull();
+                if (id === 'control') loadCheckpoints();
+            }
+        }
+
+        // ========== Tab switching ==========
+        function switchTab(name) {
+            document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById('tab-' + name).classList.add('active');
+            event.currentTarget.classList.add('active');
+            if (name === 'world') loadWorld();
+            if (name === 'characters') { loadCharacters(); loadRelationships(); }
+            if (name === 'timeline') { loadTimeline(); loadGodDecisions(); }
+            if (name === 'foreshadows') { loadForeshadows(); loadPlotThreads(); }
+            if (name === 'chapters') loadChapters();
+            if (name === 'novel') loadNovelFull();
+            if (name === 'control') loadCheckpoints();
+        }
+
+        // ========== Progress ==========
+        async function loadProgress() {
+            try {
+                const res = await fetch(nq(`${API}/api/progress`));
+                const d = await res.json();
+                const pct = d.total > 0 ? Math.round((d.completed / d.total) * 100) : 0;
+                document.getElementById('progress-fill').style.width = pct + '%';
+                document.getElementById('progress-text').textContent = d.total > 0 ? `${d.completed}/${d.total}章` : '未开始';
+                const badge = document.getElementById('status-badge');
+                if (d.phase === 'done') { badge.textContent = '已完成'; badge.className = 'status-badge status-done'; }
+                else if (d.paused) { badge.textContent = '⏸ 暂停'; badge.className = 'status-badge status-paused'; }
+                else if (d.total > 0) { badge.textContent = '生成中'; badge.className = 'status-badge status-running'; }
+                else { badge.textContent = '空闲'; badge.className = 'status-badge status-idle'; }
+            } catch(e) { console.error('loadProgress', e); }
+        }
+
+        // ========== Overview ==========
+        async function loadOverview() {
+            try {
+                const res = await fetch(nq(`${API}/api/outline`));
+                const d = await res.json();
+                const infoEl = document.getElementById('novel-info');
+                const treeEl = document.getElementById('volume-tree');
+                if (!d.outline) { infoEl.innerHTML = '<div class="empty">暂无数据</div>'; return; }
+                const o = d.outline;
+                infoEl.innerHTML = `
+                    <div class="card">
+                        <div class="name">${o.title}</div>
+                        <div class="role">${o.genre} | ${o.theme}</div>
+                        <div class="desc">${o.premise}</div>
+                        <div class="desc" style="margin-top:0.5rem;color:#94a3b8">核心冲突: ${o.central_conflict || '—'}</div>
+                    </div>`;
+                const volumes = d.volumes || [];
+                const chapters = o.chapters || [];
+                let html = '';
+                if (volumes.length > 0) {
+                    for (const v of volumes) {
+                        html += `<div class="volume-item">
+                            <div class="volume-title">卷${v.volume_index + 1}: ${v.title}</div>
+                            <div style="font-size:0.8rem;color:#94a3b8;margin-bottom:0.25rem">${v.arc_goal || ''}</div>`;
+                        for (const ch of chapters) {
+                            if (ch.chapter_index >= v.chapter_start && ch.chapter_index <= v.chapter_end)
+                                html += `<div class="chapter-item">📄 第${ch.chapter_index + 1}章: ${ch.title}</div>`;
+                        }
+                        html += '</div>';
+                    }
+                } else {
+                    for (const ch of chapters) html += `<div class="chapter-item">📄 第${ch.chapter_index + 1}章: ${ch.title}</div>`;
+                }
+                treeEl.innerHTML = html || '<div class="empty">暂无结构</div>';
+            } catch(e) { console.error('loadOverview', e); }
+        }
+
+        // ========== World ==========
+        async function loadWorld() {
+            try {
+                const res = await fetch(nq(`${API}/api/world`));
+                const d = await res.json();
+                if (!d.world) return;
+                const w = d.world;
+                document.getElementById('power-systems').innerHTML = (w.power_systems || []).map(ps => `
+                    <div class="card card-yellow">
+                        <div class="name">${ps.name}</div>
+                        <div class="desc">${ps.description}</div>
+                        ${ps.levels?.length ? `<div class="desc" style="color:#fbbf24">等级: ${ps.levels.join(' → ')}</div>` : ''}
+                        ${ps.rules?.length ? `<div class="desc" style="color:#94a3b8">${ps.rules.map(r=>'• '+r).join('<br>')}</div>` : ''}
+                    </div>`).join('') || '<div class="empty">无</div>';
+                document.getElementById('factions').innerHTML = (w.factions || []).map(f => `
+                    <div class="card card-red">
+                        <div class="name">${f.name}</div>
+                        <div class="role">领袖: ${f.leader || '—'} | 理念: ${f.ideology || '—'}</div>
+                        <div class="desc">${f.description}</div>
+                        ${f.allies?.length ? `<div class="desc" style="color:#4ade80">盟友: ${f.allies.join(', ')}</div>` : ''}
+                        ${f.enemies?.length ? `<div class="desc" style="color:#f87171">敌人: ${f.enemies.join(', ')}</div>` : ''}
+                    </div>`).join('') || '<div class="empty">无</div>';
+                document.getElementById('locations').innerHTML = (w.locations || []).map(loc => `
+                    <div class="card card-cyan">
+                        <div class="name">${loc.name}</div>
+                        <div class="desc">${loc.description}</div>
+                        ${loc.significance ? `<div class="desc" style="color:#22d3ee">意义: ${loc.significance}</div>` : ''}
+                        ${loc.controlling_faction ? `<span class="tag">${loc.controlling_faction}</span>` : ''}
+                    </div>`).join('') || '<div class="empty">无</div>';
+                document.getElementById('history-events').innerHTML = (w.history || []).map(h => `
+                    <div class="card card-purple">
+                        <div class="name">${h.name} <span class="tag">${h.era || ''}</span></div>
+                        <div class="desc">${h.description}</div>
+                        ${h.impact ? `<div class="desc" style="color:#a78bfa">影响: ${h.impact}</div>` : ''}
+                    </div>`).join('') || '<div class="empty">无</div>';
+            } catch(e) { console.error('loadWorld', e); }
+        }
+
+        // ========== Characters ==========
+        async function loadCharacters() {
+            try {
+                const res = await fetch(nq(`${API}/api/story`));
+                const data = await res.json();
+                const el = document.getElementById('characters');
+                if (!data.characters?.length) { el.innerHTML = '<div class="empty">暂无角色数据</div>'; return data.characters || []; }
+                const roleColors = { '主角': 'card', '反派': 'card card-red', '配角': 'card card-purple' };
+                el.innerHTML = data.characters.map(c => `
+                    <div class="${roleColors[c.role] || 'card'}">
+                        <div class="name">${c.name}</div><div class="role">${c.role}</div>
+                        <div class="desc">${c.backstory}</div>
+                    </div>`).join('');
+                return data.characters;
+            } catch (e) { console.error('loadCharacters', e); return []; }
+        }
+
+        async function loadRelationships() {
+            try {
+                const chars = await loadCharacters();
+                const res = await fetch(nq(`${API}/api/relationships`));
+                const data = await res.json();
+                const nodeSet = new Set(); const nodes = [];
+                for (const c of chars) {
+                    if (!nodeSet.has(c.id)) {
+                        nodeSet.add(c.id);
+                        const colors = { '主角': '#3b82f6', '反派': '#ef4444', '配角': '#8b5cf6' };
+                        nodes.push({ id: c.id, label: c.name || c.id, color: colors[c.role] || '#6366f1', font: { color: '#e2e8f0', size: 14 } });
+                    }
+                }
+                const edges = (data.edges || []).map(e => ({
+                    from: e.from, to: e.to, label: e.label,
+                    color: { color: e.affection > 0 ? '#4ade80' : e.affection < 0 ? '#f87171' : '#94a3b8' },
+                    width: Math.max(1, Math.abs(e.affection) * 3 + Math.abs(e.trust) * 2),
+                    font: { color: '#94a3b8', size: 11, strokeWidth: 0 }, arrows: 'to',
+                }));
+                new vis.Network(document.getElementById('network'), { nodes, edges }, {
+                    physics: { solver: 'forceAtlas2Based', forceAtlas2Based: { gravitationalConstant: -50 } },
+                    nodes: { shape: 'dot', size: 20, borderWidth: 2 },
+                    edges: { smooth: { type: 'curvedCW', roundness: 0.2 } },
+                    interaction: { hover: true },
+                });
+            } catch (e) { console.error('loadRelationships', e); }
+        }
+
+        // ========== Foreshadows ==========
+        async function loadForeshadows() {
+            try {
+                const res = await fetch(nq(`${API}/api/foreshadows`));
+                const d = await res.json();
+                const el = document.getElementById('foreshadow-list');
+                if (!d.foreshadows?.length) { el.innerHTML = '<div class="empty">暂无伏笔数据</div>'; return; }
+                const statusMap = { planted: ['🟢 已埋设', 'fs-planted'], reinforced: ['🔵 已强化', 'fs-reinforced'], payoff: ['✅ 已回收', 'fs-payoff'], dangling: ['🔴 悬空', 'fs-dangling'] };
+                el.innerHTML = d.foreshadows.map(f => {
+                    const [label, cls] = statusMap[f.status] || [f.status, ''];
+                    return `<div class="fs-item fs-${f.importance}">
+                        <div><span class="fs-badge ${cls}">${label}</span><span class="tag">${f.importance}</span></div>
+                        <div style="flex:1">
+                            <div style="font-weight:600;font-size:0.9rem">${f.description}</div>
+                            <div style="font-size:0.8rem;color:#94a3b8;margin-top:0.25rem">
+                                第${f.planted_chapter+1}章埋设 → 预期第${f.expected_payoff_chapter+1}章回收
+                                ${f.actual_payoff_chapter !== null ? ` | 实际第${f.actual_payoff_chapter+1}章回收` : ''}
+                            </div>
+                            ${f.related_characters?.length ? `<div style="font-size:0.75rem;color:#64748b;margin-top:0.15rem">角色: ${f.related_characters.join(', ')}</div>` : ''}
+                        </div></div>`;
+                }).join('');
+            } catch(e) { console.error('loadForeshadows', e); }
+        }
+
+        async function loadPlotThreads() {
+            try {
+                const res = await fetch(nq(`${API}/api/plot-threads`));
+                const d = await res.json();
+                const el = document.getElementById('plot-threads');
+                if (!d.plot_threads?.length) { el.innerHTML = '<div class="empty">暂无剧情线数据</div>'; return; }
+                el.innerHTML = d.plot_threads.map(pt => {
+                    const pct = Math.min(100, Object.keys(pt.chapter_progress || {}).length * 25) || 10;
+                    return `<div class="card thread-${pt.status}">
+                        <div class="name">${pt.name} <span class="tag">${pt.status}</span></div>
+                        <div class="desc">${pt.description}</div>
+                        <div style="font-size:0.75rem;color:#64748b;margin-top:0.25rem">从第${pt.start_chapter+1}章开始 | 角色: ${(pt.key_characters||[]).join(', ')}</div>
+                        <div class="thread-bar"><div class="thread-bar-fill" style="width:${pct}%"></div></div>
+                    </div>`;
+                }).join('');
+            } catch(e) { console.error('loadPlotThreads', e); }
+        }
+
+        // ========== Chapters (narrative + actions) ==========
+        function setChapterView(mode) {
+            currentChapterView = mode;
+            document.getElementById('btn-view-text').classList.toggle('active', mode === 'text');
+            document.getElementById('btn-view-actions').classList.toggle('active', mode === 'actions');
+            if (currentChapterIndex !== null) loadChapterContent(currentChapterIndex);
+        }
+
+        async function loadChapters() {
+            try {
+                const res = await fetch(nq(`${API}/api/chapters`));
+                const data = await res.json();
+                const tabsEl = document.getElementById('chapter-tabs');
+                if (!data.chapters?.length) { tabsEl.innerHTML = ''; document.getElementById('chapter-content').innerHTML = '<div class="empty">暂无章节数据</div>'; return; }
+                tabsEl.innerHTML = data.chapters.map((ch, i) => `
+                    <div class="sub-tab ${i === 0 ? 'active' : ''}" onclick="selectChapter(${ch.chapter_index}, this)">
+                        第${ch.chapter_index + 1}章 ${ch.has_text ? '✅' : ''}
+                    </div>`).join('');
+                selectChapter(data.chapters[0].chapter_index);
+            } catch (e) { console.error('loadChapters', e); }
+        }
+
+        function selectChapter(idx, tabEl) {
+            if (tabEl) {
+                document.querySelectorAll('#chapter-tabs .sub-tab').forEach(t => t.classList.remove('active'));
+                tabEl.classList.add('active');
+            }
+            currentChapterIndex = idx;
+            loadChapterContent(idx);
+        }
+
+        async function loadChapterContent(chapterIndex) {
+            const el = document.getElementById('chapter-content');
+            if (currentChapterView === 'text') {
+                // Load literary narrative text
+                try {
+                    const res = await fetch(nq(`${API}/api/chapter-text/${chapterIndex}`));
+                    const d = await res.json();
+                    if (!d.scenes?.length) {
+                        el.innerHTML = '<div class="empty">本章叙事文本尚未生成 — 切换到「🎬 行为日志」查看角色行动</div>';
+                        return;
+                    }
+                    let html = `<div style="margin-bottom:1rem">
+                        <span style="font-size:1.1rem;font-weight:600;color:#a78bfa">第${chapterIndex + 1}章 ${d.title}</span>
+                        <span class="word-count-badge">${d.full_text.length} 字</span>
+                    </div>`;
+                    d.scenes.forEach((s, i) => {
+                        if (i > 0) html += '<div class="scene-divider">· · ·</div>';
+                        // Convert plain text to paragraphs
+                        const paragraphs = s.content.split(/\n+/).filter(p => p.trim());
+                        html += '<div class="literary-text">';
+                        paragraphs.forEach(p => { html += `<p>${escapeHtml(p.trim())}</p>`; });
+                        html += '</div>';
+                        if (s.pov_character) html += `<div style="text-align:right;color:#475569;font-size:0.75rem;margin-top:0.5rem">视角: ${s.pov_character}</div>`;
+                    });
+                    if (d.summary) html += `<div class="card card-green" style="margin-top:1.5rem"><div class="name">📝 本章概要</div><div class="desc">${escapeHtml(d.summary)}</div></div>`;
+                    el.innerHTML = html;
+                } catch(e) { el.innerHTML = `<div class="empty">加载失败: ${e.message}</div>`; }
+            } else {
+                // Load action log (original behavior)
+                try {
+                    const res = await fetch(nq(`${API}/api/actions/${chapterIndex}`));
+                    const data = await res.json();
+                    if (!data.actions?.length) { el.innerHTML = '<div class="empty">暂无行为数据</div>'; return; }
+                    const icons = { dialogue: '💬', behavior: '🎬', thought: '💭', reaction: '⚡' };
+                    el.innerHTML = data.actions.map(a => `
+                        <div class="action-item">
+                            <span class="action-type">${icons[a.action_type] || '❓'}</span>
+                            <strong>${a.character_id}</strong>${a.target ? ` → ${a.target}` : ''}: ${a.content}
+                        </div>`).join('');
+                } catch (e) { el.innerHTML = `<div class="empty">加载失败: ${e.message}</div>`; }
+            }
+        }
+
+        // ========== Full Novel ==========
+        async function loadNovelFull() {
+            const el = document.getElementById('novel-full');
+            try {
+                const res = await fetch(nq(`${API}/api/novel-full`));
+                const d = await res.json();
+                if (!d.chapters?.length) {
+                    el.innerHTML = '<div class="empty">暂无成品文本 — 请先运行 <code>novel-creator generate</code> 完成至少一章</div>';
+                    return;
+                }
+                let html = '<div class="novel-container">';
+                html += `<div class="novel-title">${escapeHtml(d.title)}</div>`;
+                html += `<div class="novel-meta">${escapeHtml(d.genre)} · 共${d.chapters.length}章 · ${d.word_count}字</div>`;
+
+                for (const ch of d.chapters) {
+                    html += `<div class="chapter-heading">第${ch.chapter_index + 1}章 ${escapeHtml(ch.title)} <span class="word-count-badge">${ch.word_count}字</span></div>`;
+                    const paragraphs = ch.text.split(/\n+/).filter(p => p.trim());
+                    html += '<div class="literary-text">';
+                    paragraphs.forEach(p => { html += `<p>${escapeHtml(p.trim())}</p>`; });
+                    html += '</div>';
+                }
+                html += '</div>';
+                el.innerHTML = html;
+            } catch(e) { el.innerHTML = `<div class="empty">加载失败: ${e.message}</div>`; }
+        }
+
+        // ========== Checkpoints ==========
+        async function loadCheckpoints() {
+            try {
+                const res = await fetch(nq(`${API}/api/checkpoints`));
+                const d = await res.json();
+                const el = document.getElementById('checkpoints');
+                if (!d.checkpoints?.length) { el.innerHTML = '<div class="empty">暂无检查点</div>'; return; }
+                el.innerHTML = d.checkpoints.map(cp => `
+                    <div class="card card-green">
+                        <div class="name">${cp.checkpoint_id}</div>
+                        <div class="role">${cp.novel_title} | ${cp.completed_chapters}/${cp.total_chapters}章 | ${cp.phase}</div>
+                        <div class="desc">${cp.created_at}</div>
+                    </div>`).join('');
+            } catch(e) { console.error('loadCheckpoints', e); }
+        }
+
+        // ========== Timeline (V3) ==========
+        async function loadTimeline() {
+            try {
+                const res = await fetch(nq(`${API}/api/timeline`));
+                const d = await res.json();
+                const el = document.getElementById('timeline-eras');
+                if (!d.eras?.length) { el.innerHTML = '<div class="empty">暂无时间线数据</div>'; return; }
+
+                let html = '';
+                for (const era of d.eras.sort((a,b) => a.order - b.order)) {
+                    const eraEvents = (d.events || []).filter(e => e.era_id === era.era_id).sort((a,b) => a.chapter_index - b.chapter_index);
+                    html += `<div class="card card-purple">
+                        <div class="name">${era.name}</div>
+                        <div class="role">${era.story_time_start || ''} — ${era.story_time_end || ''} | 章节 ${era.chapter_start + 1}-${era.chapter_end + 1}</div>
+                        <div class="desc">${era.description || ''}</div>`;
+                    if (eraEvents.length) {
+                        html += '<div style="margin-top:0.5rem">';
+                        for (const ev of eraEvents) {
+                            const imp = ev.importance >= 0.7 ? '⭐' : '·';
+                            const srcTag = ev.source !== 'director' ? ` <span class="tag">${ev.source}</span>` : '';
+                            html += `<div style="font-size:0.85rem;padding:0.2rem 0">${imp} [第${ev.chapter_index + 1}章] <strong>${ev.title}</strong>${srcTag}: ${ev.description.substring(0,60)}</div>`;
+                        }
+                        html += '</div>';
+                    }
+                    html += '</div>';
+                }
+                el.innerHTML = html;
+            } catch(e) { console.error('loadTimeline', e); }
+        }
+
+        async function loadGodDecisions() {
+            try {
+                const res = await fetch(nq(`${API}/api/god-decisions`));
+                const d = await res.json();
+                const el = document.getElementById('god-decisions');
+                if (!d.decisions?.length) { el.innerHTML = '<div class="empty">暂无命运决策</div>'; return; }
+
+                el.innerHTML = d.decisions.map(dec => {
+                    let details = '';
+                    if (dec.time_progression?.time_skip) details += `<div>⏳ ${dec.time_progression.time_skip}</div>`;
+                    for (const we of (dec.world_events || [])) details += `<div>🌍 ${we.title}: ${we.description.substring(0,60)}</div>`;
+                    for (const st of (dec.subplot_triggers || [])) details += `<div>🔀 ${st.trigger_type}: ${st.description.substring(0,60)}</div>`;
+                    if (dec.next_chapter_guidance) details += `<div style="color:#94a3b8">📌 ${dec.next_chapter_guidance.substring(0,80)}</div>`;
+                    return `<div class="card card-red">
+                        <div class="name">第${dec.chapter_index + 1}章后 <span class="tag">${dec.decision_id}</span></div>
+                        <div class="desc" style="font-size:0.85rem">${details || '无重大干预'}</div>
+                    </div>`;
+                }).join('');
+            } catch(e) { console.error('loadGodDecisions', e); }
+        }
+
+        // ========== Util ==========
+        function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+        // ========== WebSocket ==========
+        function connectWS() {
+            const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+            const ws = new WebSocket(`${protocol}://${location.host}/ws`);
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                switch(msg.type) {
+                    case 'refresh':
+                        loadProgress(); loadOverview();
+                        break;
+                    case 'phase_change':
+                        updatePhase(msg);
+                        break;
+                    case 'scene_simulated':
+                        loadProgress();
+                        break;
+                    case 'scene_written':
+                        appendScenePreview(msg);
+                        break;
+                    case 'chapter_completed':
+                        loadProgress(); loadChapters();
+                        break;
+                    case 'god_decision':
+                        showGodDecision(msg);
+                        break;
+                    case 'token':
+                        appendToken(msg);
+                        break;
+                    case 'checkpoint_saved':
+                        loadProgress(); loadCheckpoints();
+                        break;
+                    case 'novel_completed':
+                        showCompletion(msg);
+                        break;
+                }
+            };
+            ws.onclose = () => setTimeout(connectWS, 3000);
+        }
+
+        function updatePhase(msg) {
+            const badge = document.getElementById('status-badge');
+            const phases = {
+                'directing': '🎬 规划中', 'world_building': '🌍 世界构建',
+                'foreshadow_planning': '📊 伏笔规划', 'simulating': '🎭 模拟中',
+                'writing': '✍️ 写作中', 'reviewing': '🔍 审校中',
+                'god_deliberation': '🔮 命运裁决',
+            };
+            const text = phases[msg.phase] || msg.phase;
+            badge.textContent = text;
+            badge.className = 'status-badge status-running';
+            const statusEl = document.getElementById('live-writing-status');
+            if (statusEl) statusEl.textContent = text;
+        }
+
+        function appendScenePreview(msg) {
+            const el = document.getElementById('live-writing');
+            if (el && msg.preview) {
+                el.innerHTML = `<div style="color:#4ade80;font-size:0.85rem;margin-bottom:0.5rem">第${msg.chapter + 1}章 场景${msg.scene + 1} (${msg.word_count}字)</div>` + escapeHtml(msg.preview) + '...';
+            }
+        }
+
+        function appendToken(msg) {
+            const el = document.getElementById('live-writing');
+            if (el) {
+                if (el.querySelector('.empty')) el.innerHTML = '';
+                el.textContent += msg.token;
+                el.scrollTop = el.scrollHeight;
+            }
+        }
+
+        function showGodDecision(msg) {
+            const el = document.getElementById('live-writing');
+            if (el) {
+                let html = '<div style="color:#ef4444;font-weight:600;margin:0.5rem 0">🔮 命运决策</div>';
+                if (msg.time_skip) html += `<div>⏳ ${escapeHtml(msg.time_skip)}</div>`;
+                for (const ev of (msg.events || [])) html += `<div>🌍 ${escapeHtml(ev)}</div>`;
+                if (msg.guidance) html += `<div style="color:#94a3b8">📌 ${escapeHtml(msg.guidance)}</div>`;
+                el.innerHTML = html;
+            }
+        }
+
+        function showCompletion(msg) {
+            const badge = document.getElementById('status-badge');
+            badge.textContent = '✅ 已完成';
+            badge.className = 'status-badge status-done';
+            const el = document.getElementById('live-writing');
+            if (el) {
+                el.innerHTML = `<div style="color:#4ade80;font-weight:600;font-size:1.1rem">📖 ${escapeHtml(msg.title)} 已完成!</div><div>共 ${msg.total_chapters} 章, ${msg.word_count} 字</div>`;
+            }
+            loadProgress(); loadNovelFull();
+        }
+
+        // ========== Init ==========
+        async function init() {
+            await loadNovels();
+            loadProgress();
+            loadOverview();
+            connectWS();
+        }
+        init();
+    </script>
+</body>
+</html>

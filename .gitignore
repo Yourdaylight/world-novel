@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.env
+data/
+*.db
+.venv/
+.pytest_cache/
+.ruff_cache/
+logs/
+
+# Vue frontend
+web/node_modules/
+web/dist/
+web/src/auto-imports.d.ts
+web/src/components.d.ts

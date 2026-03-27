@@ -1,0 +1,273 @@
+/* === WorldEngine — Clean Professional Global Styles === */
+
+:root {
+  /* === 基础背景 (neutral dark blue-gray) === */
+  --bg-void:        #0f1117;
+  --bg-surface:     #181b22;
+  --bg-elevated:    #1f2330;
+  --bg-glass:       rgba(31, 35, 48, 0.82);
+  --bg-scrim:       rgba(15, 17, 23, 0.94);
+
+  /* === 文字 === */
+  --text-primary:   #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted:     #64748b;
+  --text-inverse:   #0f1117;
+
+  /* === 强调色 === */
+  --accent-ember:     #d4793a;
+  --accent-ember-dim: rgba(212, 121, 58, 0.12);
+  --accent-ember-glow: rgba(212, 121, 58, 0.4);
+
+  --accent-jade:      #4ec994;
+  --accent-cinnabar:  #e04545;
+  --accent-aurora:    #a78bfa;
+  --accent-phosphor:  #c6e847;
+  --accent-silver:    #cbd5e1;
+
+  /* === 结构线 === */
+  --border-ghost:   rgba(226, 232, 240, 0.06);
+  --border-rule:    rgba(226, 232, 240, 0.12);
+  --border-active:  rgba(212, 121, 58, 0.45);
+
+  /* === 阴影 === */
+  --shadow-sm:   0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-deep: 0 8px 40px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+
+  /* === 字体 (sans-serif only) === */
+  --font-ui:       'Instrument Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-data:     'JetBrains Mono', 'Menlo', monospace;
+
+  /* === 圆角 === */
+  --radius-sm:  4px;
+  --radius-md:  6px;
+  --radius-lg:  8px;
+
+  /* === 字体比例尺 === */
+  --fs-xs:   11px;
+  --fs-sm:   13px;
+  --fs-base: 15px;
+  --fs-md:   17px;
+  --fs-lg:   22px;
+  --fs-xl:   32px;
+  --fs-2xl:  48px;
+  --fs-3xl:  68px;
+  --fs-hero: 96px;
+
+  /* === 间距 === */
+  --sp-2xs: 2px;
+  --sp-xs:  4px;
+  --sp-sm:  8px;
+  --sp-md:  16px;
+  --sp-lg:  24px;
+  --sp-xl:  32px;
+  --sp-2xl: 48px;
+  --sp-3xl: 64px;
+}
+
+/* === Reset === */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-ui);
+  background: var(--bg-void);
+  color: var(--text-primary);
+  font-size: var(--fs-base);
+  line-height: 1.5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+/* === Font utility classes === */
+.font-data {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+.font-ui {
+  font-family: var(--font-ui);
+}
+
+/* === Layout utilities === */
+.ledger-rule {
+  border-bottom: 1px solid var(--border-rule);
+  padding-bottom: var(--sp-md);
+  margin-bottom: var(--sp-md);
+}
+
+.section-label {
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: var(--sp-sm);
+  display: block;
+}
+
+/* === Button styles === */
+.btn-primary {
+  background: var(--accent-ember) !important;
+  border-color: var(--accent-ember) !important;
+  color: var(--text-inverse) !important;
+  border-radius: var(--radius-md) !important;
+  font-family: var(--font-ui);
+  font-weight: 600;
+
+  &:hover, &:focus {
+    background: #db8a52 !important;
+    border-color: #db8a52 !important;
+  }
+}
+
+/* === Element Plus dark overrides === */
+.el-tabs__item {
+  font-family: var(--font-ui) !important;
+  color: var(--text-muted) !important;
+  &.is-active {
+    color: var(--accent-ember) !important;
+  }
+  &:hover {
+    color: var(--text-secondary) !important;
+  }
+}
+
+.el-tabs__active-bar {
+  background-color: var(--accent-ember) !important;
+}
+
+.el-card {
+  background: var(--bg-surface) !important;
+  border-color: var(--border-rule) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: none !important;
+}
+
+.el-card__header {
+  border-bottom-color: var(--border-rule) !important;
+}
+
+.el-button--primary {
+  background: var(--accent-ember) !important;
+  border-color: var(--accent-ember) !important;
+  color: var(--text-inverse) !important;
+  border-radius: var(--radius-md) !important;
+  font-family: var(--font-ui);
+
+  &:hover, &:focus {
+    background: #db8a52 !important;
+    border-color: #db8a52 !important;
+  }
+}
+
+.el-button--success {
+  background: var(--accent-jade) !important;
+  border-color: var(--accent-jade) !important;
+  color: var(--text-inverse) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+.el-button--danger {
+  background: var(--accent-cinnabar) !important;
+  border-color: var(--accent-cinnabar) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+.el-button--warning {
+  background: var(--accent-ember) !important;
+  border-color: var(--accent-ember) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+.el-button.is-plain {
+  border-radius: var(--radius-md) !important;
+}
+
+.el-tag {
+  border-radius: var(--radius-sm) !important;
+  font-family: var(--font-ui);
+}
+
+.el-input__wrapper {
+  border-radius: var(--radius-md) !important;
+  background: var(--bg-elevated) !important;
+  box-shadow: 0 0 0 1px var(--border-rule) inset !important;
+
+  &:focus-within, &.is-focus {
+    box-shadow: 0 0 0 1px var(--border-active) inset !important;
+  }
+}
+
+.el-select .el-input__wrapper {
+  border-radius: var(--radius-md) !important;
+}
+
+.el-drawer {
+  background: var(--bg-surface) !important;
+}
+
+.el-drawer__header {
+  font-family: var(--font-ui);
+  color: var(--text-primary) !important;
+}
+
+.el-progress-bar__outer {
+  border-radius: var(--radius-sm) !important;
+  background-color: var(--bg-elevated) !important;
+}
+
+.el-progress-bar__inner {
+  border-radius: var(--radius-sm) !important;
+}
+
+.el-radio-button__inner {
+  border-radius: var(--radius-md) !important;
+  font-family: var(--font-ui);
+}
+
+.el-dialog {
+  border-radius: var(--radius-lg) !important;
+  background: var(--bg-surface) !important;
+}
+
+.el-message-box {
+  border-radius: var(--radius-lg) !important;
+  background: var(--bg-surface) !important;
+}
+
+.el-slider__bar {
+  background: var(--accent-ember) !important;
+}
+
+.el-slider__button {
+  border-color: var(--accent-ember) !important;
+}
+
+/* === Scrollbar === */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-void);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-rule);
+  border-radius: 3px;
+  &:hover {
+    background: var(--text-muted);
+  }
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-rule) var(--bg-void);
+}
