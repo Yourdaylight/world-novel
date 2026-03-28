@@ -1,51 +1,68 @@
 <template>
   <div class="novel-reader">
-    <div v-for="ch in chapters" :key="ch.chapter_index" class="reader-chapter">
-      <h3 class="chapter-title">第{{ ch.chapter_index + 1 }}章 {{ ch.title }}</h3>
-      <div class="chapter-text" v-html="renderText(ch.text)"></div>
-      <div class="chapter-word-count">{{ ch.word_count }} 字</div>
+    <h3 class="chapter-heading">第{{ chapter.chapter_index + 1 }}章 {{ chapter.title }}</h3>
+    <div class="chapter-body">
+      <p
+        v-for="(para, i) in paragraphs"
+        :key="i"
+        class="chapter-paragraph"
+      >{{ para }}</p>
+    </div>
+    <div class="chapter-footer ledger-rule">
+      <span class="word-count font-data">{{ chapter.word_count.toLocaleString() }} 字</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { escapeHtml } from '@/utils/escapeHtml'
+import { computed } from 'vue'
 import type { NovelFullChapter } from '@/api/types'
 
-defineProps<{ chapters: NovelFullChapter[] }>()
+const props = defineProps<{ chapter: NovelFullChapter }>()
 
-function renderText(text: string): string {
-  return escapeHtml(text)
+const paragraphs = computed(() =>
+  props.chapter.text
     .split('\n')
-    .filter((l) => l.trim())
-    .map((l) => `<p style="text-indent:2em;line-height:2;margin-bottom:0.5em">${l}</p>`)
-    .join('')
-}
+    .map(l => l.trim())
+    .filter(Boolean)
+)
 </script>
 
 <style scoped lang="scss">
 .novel-reader {
-  max-height: 70vh;
-  overflow-y: auto;
+  /* No max-height — content flows naturally */
 }
-.reader-chapter {
-  margin-bottom: 3rem;
-}
-.chapter-title {
-  font-size: 1.3rem;
-  color: var(--accent-blue);
-  margin-bottom: 1.5rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--border);
-}
-.chapter-text {
+
+.chapter-heading {
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  font-weight: 400;
   color: var(--text-primary);
-  font-size: 1rem;
+  margin: 0 0 var(--sp-xl) 0;
+  padding-bottom: var(--sp-md);
+  border-bottom: 1px solid var(--border-rule);
 }
-.chapter-word-count {
+
+.chapter-body {
+  font-family: var(--font-serif, 'Source Serif 4', serif);
+  font-size: var(--fs-md);
+  color: var(--text-primary);
+  line-height: 1.8;
+}
+
+.chapter-paragraph {
+  text-indent: 2em;
+  margin: 0 0 1em 0;
+}
+
+.chapter-footer {
   text-align: right;
-  font-size: 0.8rem;
+  padding-top: var(--sp-md);
+  margin-top: var(--sp-lg);
+}
+
+.word-count {
+  font-size: var(--fs-xs);
   color: var(--text-muted);
-  margin-top: 0.5rem;
 }
 </style>
