@@ -5,9 +5,9 @@
       <div class="gen-panel-inner">
         <div class="gen-info">
           <h2 v-if="isIdle && !worldStatus.is_running">开始生成</h2>
-          <h2 v-else-if="worldStatus.is_running || worldStatus.status === 'generating'">生成进行中</h2>
-          <h2 v-else-if="worldStatus.status === 'paused'">生成已暂停</h2>
-          <h2 v-else-if="worldStatus.status === 'completed'">生成完成</h2>
+          <h2 v-else-if="worldStatus.is_running || worldStatus.status === 'generating'">生成中</h2>
+          <h2 v-else-if="worldStatus.status === 'paused'">已暂停</h2>
+          <h2 v-else-if="worldStatus.status === 'completed'">已完成</h2>
           <h2 v-else>开始生成</h2>
 
           <p v-if="isIdle && !worldStatus.is_running">
@@ -80,6 +80,7 @@
           :key="i"
           :class="['event-item', `event-${evt.type}`]"
         >
+          <span class="event-bar"></span>
           <span class="event-time">{{ evt.time }}</span>
           <span class="event-text">{{ evt.text }}</span>
         </div>
@@ -362,7 +363,7 @@ async function onResumeGeneration() {
   try {
     const res = await resumeGeneration(novelId, runMode.value)
     if (res.ok) {
-      ElMessage.success('继续生成已启动！新设定将自动融入后续章节')
+      ElMessage.success('继续生成已启动')
       addEvent(`从第${worldStatus.chapters_completed + 1}章继续生成（新设定已融入）`, 'start')
       worldStatus.is_running = true
       worldStatus.status = 'generating'
@@ -402,7 +403,7 @@ async function onResumeWithGuidance() {
     const guidance = directorGuidance.value.trim() || undefined
     const res = await resumeGeneration(novelId, 'chapter_by_chapter', guidance)
     if (res.ok) {
-      ElMessage.success(guidance ? '继续生成，导演建议已注入！' : '继续生成下一章！')
+      ElMessage.success(guidance ? '继续生成，建议已注入' : '继续生成')
       addEvent(`从第${worldStatus.chapters_completed + 1}章继续生成${guidance ? '（已注入导演建议）' : ''}`, 'start')
       worldStatus.is_running = true
       worldStatus.status = 'generating'
@@ -430,9 +431,9 @@ function onStayPaused() {
   margin-bottom: var(--sp-lg);
 
   .gen-panel-inner {
-    background: var(--accent-ember-dim);
-    border: 1px solid var(--border-rule);
-    border-radius: 6px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
     padding: var(--sp-lg) var(--sp-xl);
     display: flex;
     align-items: center;
@@ -516,6 +517,23 @@ function onStayPaused() {
       flex-shrink: 0;
     }
     .event-text { color: var(--text-primary); }
+
+    .event-bar {
+      width: 3px;
+      min-height: 16px;
+      border-radius: 2px;
+      flex-shrink: 0;
+      background: var(--text-muted);
+    }
+
+    &.event-phase .event-bar { background: var(--accent-blue, #58a6ff); }
+    &.event-chapter .event-bar { background: var(--accent-ember); }
+    &.event-done .event-bar { background: var(--accent-jade); }
+    &.event-error .event-bar { background: var(--accent-cinnabar); }
+    &.event-start .event-bar { background: var(--accent-aurora); }
+    &.event-god .event-bar { background: var(--accent-ember); }
+    &.event-scene .event-bar,
+    &.event-write .event-bar { background: var(--text-muted); }
 
     &.event-error .event-text { color: var(--accent-cinnabar); }
     &.event-done .event-text { color: var(--accent-jade); font-weight: 600; }
