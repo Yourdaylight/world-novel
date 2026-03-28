@@ -265,3 +265,15 @@ export interface RelationshipHistoryEntry {
   chapter_index: number
   change_reason: string
 }
+
+// ---- SceneBeat ----
+export interface SceneBeat {
+  scene_index: number
+  location?: string
+  tone?: string
+  objective?: string
+  conflict?: string
+  involved_characters: string[]
+  foreshadows_to_plant: string[]
+  foreshadows_to_payoff: string[]
+}
