@@ -3,7 +3,12 @@
     <!-- Sidebar -->
     <aside class="dashboard-sidebar">
       <div class="sidebar-header">
-        <button class="back-link" @click="router.push('/')">← 首页</button>
+        <div class="header-top">
+          <button class="back-link" @click="router.push('/')">← 首页</button>
+          <button class="theme-toggle" @click="toggleTheme" :title="isDark ? '切换亮色' : '切换暗色'">
+            {{ isDark ? '☀' : '☾' }}
+          </button>
+        </div>
         <h1 class="world-name">WorldEngine</h1>
         <div class="simulation-status" v-if="novelStore.activeNovelId">
           <span class="status-dot" :class="statusClass">●</span>
@@ -107,7 +112,10 @@ import { useWebSocket, onWSEvent } from '@/composables/useWebSocket'
 import { useNovelStore } from '@/stores/novel'
 import { useProgressStore } from '@/stores/progress'
 import { useEventLogStore } from '@/stores/eventLog'
+import { useTheme } from '@/composables/useTheme'
 import client from '@/api/client'
+
+const { isDark, toggleTheme } = useTheme()
 
 const router = useRouter()
 const route = useRoute()
@@ -251,6 +259,33 @@ onUnmounted(() => {
 .sidebar-header {
   padding: var(--sp-lg) var(--sp-md);
   border-bottom: 1px solid var(--border-rule);
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--sp-sm);
+}
+
+.theme-toggle {
+  background: none;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-secondary);
+  transition: border-color var(--duration-fast) var(--ease-default);
+
+  &:hover {
+    border-color: var(--accent-ember);
+    color: var(--accent-ember);
+  }
 }
 
 .back-link {

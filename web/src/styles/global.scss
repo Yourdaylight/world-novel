@@ -1,43 +1,46 @@
-/* === WorldEngine — Professional Dark Theme === */
+/* === WorldEngine — Light/Dark Theme System === */
 
+/* ============================
+   LIGHT MODE (default)
+   ============================ */
 :root {
   /* === Backgrounds === */
-  --bg-void:        #0d1117;
-  --bg-surface:     #161b22;
-  --bg-elevated:    #1c2128;
-  --bg-glass:       rgba(22, 27, 34, 0.85);
-  --bg-scrim:       rgba(13, 17, 23, 0.94);
+  --bg-void:        #ffffff;
+  --bg-surface:     #f9fafb;
+  --bg-elevated:    #f3f4f6;
+  --bg-glass:       rgba(255, 255, 255, 0.85);
+  --bg-scrim:       rgba(255, 255, 255, 0.94);
 
   /* === Text === */
-  --text-primary:   #e6edf3;
-  --text-secondary: #8b949e;
-  --text-muted:     #484f58;
-  --text-inverse:   #0d1117;
+  --text-primary:   #111827;
+  --text-secondary: #6b7280;
+  --text-muted:     #9ca3af;
+  --text-inverse:   #ffffff;
 
   /* === Accents === */
-  --accent-ember:     #d4793a;
-  --accent-ember-dim: rgba(212, 121, 58, 0.12);
+  --accent-ember:     #f97316;
+  --accent-ember-dim: rgba(249, 115, 22, 0.08);
   --accent-ember-glow: none;
-  --accent-blue:      #58a6ff;
-  --accent-jade:      #3fb950;
-  --accent-cinnabar:  #f85149;
-  --accent-aurora:    #bc8cff;
-  --accent-phosphor:  #7ee787;
-  --accent-silver:    #8b949e;
+  --accent-blue:      #2563eb;
+  --accent-jade:      #16a34a;
+  --accent-cinnabar:  #dc2626;
+  --accent-aurora:    #7c3aed;
+  --accent-phosphor:  #16a34a;
+  --accent-silver:    #6b7280;
 
   /* === Structure === */
-  --border-default: #30363d;
-  --border-muted:   #21262d;
-  --border-active:  rgba(212, 121, 58, 0.45);
+  --border-default: #e5e7eb;
+  --border-muted:   #f3f4f6;
+  --border-active:  rgba(249, 115, 22, 0.45);
 
   /* Legacy aliases */
   --border-ghost:   var(--border-muted);
   --border-rule:    var(--border-default);
 
   /* === Shadows === */
-  --shadow-sm:   0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
-  --shadow-md:   0 4px 12px rgba(0,0,0,0.15);
-  --shadow-deep: 0 8px 24px rgba(0,0,0,0.2);
+  --shadow-sm:   0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md:   0 4px 12px rgba(0,0,0,0.08);
+  --shadow-deep: 0 8px 24px rgba(0,0,0,0.12);
   --glow-ember:  none;
   --glow-jade:   none;
 
@@ -55,10 +58,10 @@
   /* === Font Scale === */
   --fs-xs:   11px;
   --fs-sm:   13px;
-  --fs-base: 15px;
-  --fs-md:   17px;
-  --fs-lg:   22px;
-  --fs-xl:   32px;
+  --fs-base: 14px;
+  --fs-md:   16px;
+  --fs-lg:   20px;
+  --fs-xl:   28px;
   --fs-2xl:  48px;
   --fs-3xl:  68px;
   --fs-hero: 96px;
@@ -80,6 +83,39 @@
   --ease-default:   cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ============================
+   DARK MODE
+   ============================ */
+html.dark {
+  --bg-void:        #09090b;
+  --bg-surface:     #18181b;
+  --bg-elevated:    #27272a;
+  --bg-glass:       rgba(24, 24, 27, 0.85);
+  --bg-scrim:       rgba(9, 9, 11, 0.94);
+
+  --text-primary:   #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-muted:     #52525b;
+  --text-inverse:   #09090b;
+
+  --accent-ember:     #f97316;
+  --accent-ember-dim: rgba(249, 115, 22, 0.10);
+  --accent-blue:      #3b82f6;
+  --accent-jade:      #22c55e;
+  --accent-cinnabar:  #ef4444;
+  --accent-aurora:    #a78bfa;
+  --accent-phosphor:  #22c55e;
+  --accent-silver:    #a1a1aa;
+
+  --border-default: #27272a;
+  --border-muted:   #1e1e22;
+  --border-active:  rgba(249, 115, 22, 0.45);
+
+  --shadow-sm:   0 1px 3px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.15);
+  --shadow-md:   0 4px 12px rgba(0,0,0,0.25);
+  --shadow-deep: 0 8px 24px rgba(0,0,0,0.35);
+}
+
 /* === Reset === */
 * {
   margin: 0;
@@ -96,6 +132,8 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background var(--duration-base) var(--ease-default),
+              color var(--duration-base) var(--ease-default);
 }
 
 #app {
@@ -133,7 +171,7 @@ body {
   display: block;
 }
 
-/* === Element Plus dark overrides === */
+/* === Element Plus overrides === */
 .el-tabs__item {
   font-family: var(--font-ui) !important;
   color: var(--text-muted) !important;
@@ -153,7 +191,7 @@ body {
   background: var(--bg-surface) !important;
   border-color: var(--border-default) !important;
   border-radius: var(--radius-lg) !important;
-  box-shadow: none !important;
+  box-shadow: var(--shadow-sm) !important;
 }
 
 .el-card__header {
@@ -163,26 +201,27 @@ body {
 .el-button--primary {
   background: var(--accent-ember) !important;
   border-color: var(--accent-ember) !important;
-  color: var(--text-inverse) !important;
+  color: #fff !important;
   border-radius: var(--radius-md) !important;
   font-family: var(--font-ui);
 
   &:hover, &:focus {
-    background: #db8a52 !important;
-    border-color: #db8a52 !important;
+    background: #ea580c !important;
+    border-color: #ea580c !important;
   }
 }
 
 .el-button--success {
   background: var(--accent-jade) !important;
   border-color: var(--accent-jade) !important;
-  color: var(--text-inverse) !important;
+  color: #fff !important;
   border-radius: var(--radius-md) !important;
 }
 
 .el-button--danger {
   background: var(--accent-cinnabar) !important;
   border-color: var(--accent-cinnabar) !important;
+  color: #fff !important;
   border-radius: var(--radius-md) !important;
 }
 
@@ -203,11 +242,11 @@ body {
 
 .el-input__wrapper {
   border-radius: var(--radius-md) !important;
-  background: var(--bg-elevated) !important;
+  background: var(--bg-void) !important;
   box-shadow: 0 0 0 1px var(--border-default) inset !important;
 
   &:focus-within, &.is-focus {
-    box-shadow: 0 0 0 1px var(--border-active) inset !important;
+    box-shadow: 0 0 0 1px var(--accent-ember) inset !important;
   }
 }
 

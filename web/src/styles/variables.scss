@@ -1,80 +1,46 @@
-// === WorldEngine — Professional Dark Theme ===
+// === WorldEngine — Light/Dark Theme SCSS Variables ===
+// Compile-time values for SCSS. Runtime theming uses CSS custom properties in global.scss.
 
-// --- Backgrounds (neutral dark, GitHub Dark style) ---
-$bg-void:       #0d1117;
-$bg-surface:    #161b22;
-$bg-elevated:   #1c2128;
-$bg-glass:      rgba(22, 27, 34, 0.85);
-$bg-scrim:      rgba(13, 17, 23, 0.94);
+// --- Light mode defaults ---
+$bg-void:       #ffffff;
+$bg-surface:    #f9fafb;
+$bg-elevated:   #f3f4f6;
+$bg-glass:      rgba(255, 255, 255, 0.85);
+$bg-scrim:      rgba(255, 255, 255, 0.94);
 
-// --- Text ---
-$text-primary:   #e6edf3;
-$text-secondary: #8b949e;
-$text-muted:     #484f58;
-$text-inverse:   #0d1117;
+$text-primary:   #111827;
+$text-secondary: #6b7280;
+$text-muted:     #9ca3af;
+$text-inverse:   #ffffff;
 
-// --- Accents ---
-$accent-ember:     #d4793a;
-$accent-ember-dim: rgba(212, 121, 58, 0.12);
-$accent-blue:      #58a6ff;
-$accent-jade:      #3fb950;
-$accent-cinnabar:  #f85149;
-$accent-aurora:    #bc8cff;
-$accent-phosphor:  #7ee787;
-$accent-silver:    #8b949e;
+$accent-ember:     #f97316;
+$accent-ember-dim: rgba(249, 115, 22, 0.08);
+$accent-blue:      #2563eb;
+$accent-jade:      #16a34a;
+$accent-cinnabar:  #dc2626;
+$accent-aurora:    #7c3aed;
+$accent-phosphor:  #16a34a;
+$accent-silver:    #6b7280;
 
-// --- Structure ---
-$border-default: #30363d;
-$border-muted:   #21262d;
-$border-active:  rgba(212, 121, 58, 0.45);
+$border-default: #e5e7eb;
+$border-muted:   #f3f4f6;
+$border-active:  rgba(249, 115, 22, 0.45);
+$border-ghost:   $border-muted;
+$border-rule:    $border-default;
 
-// Legacy aliases (used by 38+ components — DO NOT REMOVE)
-$border-ghost:  $border-muted;
-$border-rule:   $border-default;
-
-// --- Font families ---
 $font-ui:       'Inter', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
 $font-serif:    'Noto Serif SC', 'Source Serif 4', 'STSong', serif;
-$font-display:  $font-ui;  // No separate display font
+$font-display:  $font-ui;
 $font-data:     'JetBrains Mono', 'Menlo', monospace;
 
-// --- Font scale (unchanged) ---
-$fs-xs:   11px;
-$fs-sm:   13px;
-$fs-base: 15px;
-$fs-md:   17px;
-$fs-lg:   22px;
-$fs-xl:   32px;
-$fs-2xl:  48px;
-$fs-3xl:  68px;
-$fs-hero: 96px;
+$fs-xs: 11px; $fs-sm: 13px; $fs-base: 14px; $fs-md: 16px;
+$fs-lg: 20px; $fs-xl: 28px; $fs-2xl: 48px; $fs-3xl: 68px; $fs-hero: 96px;
 
-// --- Spacing scale (8px base, unchanged) ---
-$sp-2xs: 2px;
-$sp-xs:  4px;
-$sp-sm:  8px;
-$sp-md:  16px;
-$sp-lg:  24px;
-$sp-xl:  32px;
-$sp-2xl: 48px;
-$sp-3xl: 64px;
+$sp-2xs: 2px; $sp-xs: 4px; $sp-sm: 8px; $sp-md: 16px;
+$sp-lg: 24px; $sp-xl: 32px; $sp-2xl: 48px; $sp-3xl: 64px;
 
-// --- Border radius (unchanged) ---
-$radius-sm:     4px;
-$radius-md:     6px;
-$radius-lg:     8px;
-$radius-badge:  4px;
-$radius-avatar: 50%;
-
-// --- Easing & Duration ---
-$duration-fast: 150ms;
-$duration-base: 200ms;
-$duration-slow: 300ms;
-$ease-default:  cubic-bezier(0.4, 0, 0.2, 1);
-
-// --- Shadows ---
-$shadow-sm:   0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
-$shadow-md:   0 4px 12px rgba(0,0,0,0.15);
-$shadow-deep: 0 8px 24px rgba(0,0,0,0.2);
-$glow-ember:  none;
-$glow-jade:   none;
+$radius-sm: 4px; $radius-md: 6px; $radius-lg: 8px; $radius-badge: 4px; $radius-avatar: 50%;
+$duration-fast: 150ms; $duration-base: 200ms; $duration-slow: 300ms;
+$ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+$shadow-sm: 0 1px 2px rgba(0,0,0,0.05); $shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+$shadow-deep: 0 8px 24px rgba(0,0,0,0.12); $glow-ember: none; $glow-jade: none;
