@@ -49,8 +49,8 @@ export async function deleteWorld(novelId: string): Promise<{ ok: boolean }> {
   return data
 }
 
-export async function resumeGeneration(novelId: string, mode: string = 'full'): Promise<{ ok: boolean; message?: string; error?: string }> {
-  const { data } = await client.post(`/worlds/${novelId}/resume`, { mode })
+export async function resumeGeneration(novelId: string, mode: string = 'full', guidance?: string): Promise<{ ok: boolean; message?: string; error?: string }> {
+  const { data } = await client.post(`/worlds/${novelId}/resume`, { mode, guidance })
   return data
 }
 
