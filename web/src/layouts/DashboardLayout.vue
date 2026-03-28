@@ -123,7 +123,6 @@ const tabs = [
   { name: 'timeline',    label: '大纲与时间线' },
   { name: 'foreshadows', label: '伏笔' },
   { name: 'chapters',    label: '章节' },
-  { name: 'novel',       label: '成书' },
   { name: 'tokens',      label: 'Token 统计' },
   { name: 'control',     label: '控制台' },
 ]

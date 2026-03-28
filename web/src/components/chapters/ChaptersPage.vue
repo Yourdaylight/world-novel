@@ -1,7 +1,19 @@
 <template>
   <div class="chapters-page" v-loading="chapterStore.loading">
-    <!-- Search bar -->
-    <ChapterSearch />
+    <!-- Header with search + export -->
+    <div class="chapters-header">
+      <ChapterSearch />
+      <el-dropdown trigger="click" v-if="chapterStore.chapters.length > 0">
+        <el-button size="small">导出</el-button>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item @click="downloadMarkdown">Markdown</el-dropdown-item>
+            <el-dropdown-item @click="downloadJSON">JSON</el-dropdown-item>
+            <el-dropdown-item @click="copyAll">复制全文</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+    </div>
 
     <el-row :gutter="20">
       <el-col :span="6">
@@ -38,14 +50,19 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, computed } from 'vue'
+import { onMounted, onUnmounted, computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { useChapterStore } from '@/stores/chapters'
+import { onWSEvent } from '@/composables/useWebSocket'
+import { fetchNovelFull } from '@/api/chapters'
 import ChapterSearch from './ChapterSearch.vue'
 import ChapterTabs from './ChapterTabs.vue'
 import NarrativeView from './NarrativeView.vue'
 import ActionLogView from './ActionLogView.vue'
 import LiveWritingPanel from './LiveWritingPanel.vue'
 
+const route = useRoute()
 const chapterStore = useChapterStore()
 const chapterText = computed(() => chapterStore.chapterText)
 
@@ -55,9 +72,52 @@ onMounted(async () => {
     await chapterStore.selectChapter(chapterStore.activeChapter)
   }
 })
+
+// Auto-refresh chapter list on WS events
+const unsubChapter = onWSEvent('chapter_completed', async () => {
+  await chapterStore.loadChapters()
+})
+const unsubFinish = onWSEvent('generation_finished', async () => {
+  await chapterStore.loadChapters()
+})
+onUnmounted(() => {
+  unsubChapter()
+  unsubFinish()
+})
+
+// Export functions (merged from NovelPage)
+async function copyAll() {
+  try {
+    const data = await fetchNovelFull()
+    if (data.full_text) {
+      await navigator.clipboard.writeText(data.full_text)
+      ElMessage.success('全文已复制到剪贴板')
+    }
+  } catch {
+    ElMessage.error('复制失败')
+  }
+}
+
+function downloadMarkdown() {
+  const novelId = route.params.novelId as string
+  window.open(`/api/worlds/${novelId}/export/markdown`, '_blank')
+}
+
+function downloadJSON() {
+  const novelId = route.params.novelId as string
+  window.open(`/api/worlds/${novelId}/export/json`, '_blank')
+}
 </script>
 
 <style scoped lang="scss">
+.chapters-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-md);
+  margin-bottom: var(--sp-md);
+}
+
 .ledger-zone {
   padding-bottom: var(--sp-lg);
 }
