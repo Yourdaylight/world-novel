@@ -140,15 +140,15 @@ async def api_world_status(novel_id: str):
     from .generation import _generation_tasks
     is_running = novel_id in _generation_tasks and not _generation_tasks[novel_id].done()
 
-    # Get DB progress
+    # Get DB progress from checkpoints
     progress = {"completed": 0, "total": 0, "phase": "idle", "paused": False}
+    actual_chapter_count = 0
     try:
         conn = await get_connection(novel.db_path)
         cursor = await conn.execute(
             "SELECT * FROM generation_checkpoints ORDER BY created_at DESC LIMIT 1"
         )
         row = await cursor.fetchone()
-        await conn.close()
         if row:
             progress = {
                 "completed": row["completed_chapters"],
@@ -156,15 +156,32 @@ async def api_world_status(novel_id: str):
                 "phase": row["phase"],
                 "paused": row["phase"] not in ("done",),
             }
+        # Also count actual chapters in DB as ground truth
+        cursor2 = await conn.execute(
+            "SELECT COUNT(DISTINCT chapter_index) FROM chapter_texts"
+        )
+        count_row = await cursor2.fetchone()
+        if count_row:
+            actual_chapter_count = count_row[0]
+        await conn.close()
     except Exception:
         pass
+
+    # Use the most reliable chapter count:
+    # - During active generation: registry value is live-updated, trust it
+    # - Otherwise: use DB actual count as ground truth
+    chapters_completed = novel.chapters_completed
+    if not is_running and actual_chapter_count != chapters_completed:
+        chapters_completed = actual_chapter_count
+        # Sync registry to match reality
+        novel.chapters_completed = actual_chapter_count
 
     return {
         "novel_id": novel_id,
         "title": novel.title,
         "status": novel.status,
         "is_running": is_running,
-        "chapters_completed": novel.chapters_completed,
+        "chapters_completed": chapters_completed,
         "chapters_total": novel.chapters_total,
         "word_count": novel.word_count,
         "progress": progress,

@@ -322,7 +322,7 @@ async def api_pause_generation(novel_id: str):
 
 @router.get("/progress")
 async def get_progress(novel_id: str | None = Query(None)):
-    """Get generation progress from the latest checkpoint."""
+    """Get generation progress from the latest checkpoint, with DB fallback."""
     try:
         db_path = await _get_novel_db(novel_id)
         conn = await get_connection(db_path)
@@ -330,17 +330,26 @@ async def get_progress(novel_id: str | None = Query(None)):
             "SELECT * FROM generation_checkpoints ORDER BY created_at DESC LIMIT 1"
         )
         row = await cursor.fetchone()
+        if row is not None:
+            await conn.close()
+            return {
+                "completed": row["completed_chapters"],
+                "total": row["total_chapters"],
+                "phase": row["phase"],
+                "paused": row["phase"] not in ("done",),
+                "checkpoint_id": row["checkpoint_id"],
+                "novel_title": row["novel_title"],
+            }
+        # No checkpoint — count actual chapters as fallback
+        cursor2 = await conn.execute(
+            "SELECT COUNT(DISTINCT chapter_index) FROM chapter_texts"
+        )
+        count_row = await cursor2.fetchone()
+        actual = count_row[0] if count_row else 0
         await conn.close()
-        if row is None:
-            return {"completed": 0, "total": 0, "phase": "idle", "paused": False}
-        return {
-            "completed": row["completed_chapters"],
-            "total": row["total_chapters"],
-            "phase": row["phase"],
-            "paused": row["phase"] not in ("done",),
-            "checkpoint_id": row["checkpoint_id"],
-            "novel_title": row["novel_title"],
-        }
+        if actual > 0:
+            return {"completed": actual, "total": 0, "phase": "idle", "paused": False}
+        return {"completed": 0, "total": 0, "phase": "idle", "paused": False}
     except Exception as e:
         return {"error": str(e), "completed": 0, "total": 0, "phase": "error", "paused": False}
 
