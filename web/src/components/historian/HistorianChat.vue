@@ -39,11 +39,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted, watch } from 'vue'
+import { ref, nextTick, onMounted, watch, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import client from '@/api/client'
+import { useProgressStore } from '@/stores/progress'
 
 const route = useRoute()
+const progressStore = useProgressStore()
 const input = ref('')
 const loading = ref(false)
 const msgContainer = ref<HTMLElement | null>(null)
@@ -51,13 +53,20 @@ const msgContainer = ref<HTMLElement | null>(null)
 interface ChatMessage { role: 'user' | 'assistant'; content: string }
 const messages = ref<ChatMessage[]>([])
 
-const suggestions = [
-  '帮我梳理当前所有角色的关系变化',
-  '基于陆沉的记忆和行动，写一段他的内心独白',
-  '分析目前的伏笔哪些还没回收',
-  '建议下一章的剧情走向',
-  '写一段顾长夜和苏晚晴的对手戏',
-]
+const suggestions = computed(() => {
+  const chapter = progressStore.completed
+  const dynamic: string[] = []
+  if (chapter > 0) {
+    dynamic.push(`分析第${chapter}章中角色的关系变化`)
+    dynamic.push(`第${chapter}章有哪些伏笔被埋下了？`)
+  }
+  return [
+    ...dynamic,
+    '帮我梳理当前所有角色的关系变化',
+    '分析目前的伏笔哪些还没回收',
+    '建议下一章的剧情走向',
+  ]
+})
 
 // --- localStorage 持久化 ---
 function storageKey() {
