@@ -4,7 +4,7 @@
     <div class="outline-section ledger-rule">
       <div class="outline-header-row">
         <span class="section-label">故事大纲</span>
-        <el-button size="small" @click="refreshData">🔄 刷新</el-button>
+        <el-button size="small" @click="refreshData">刷新</el-button>
       </div>
 
       <template v-if="outline">
@@ -44,7 +44,7 @@
               <div v-if="expandedChapter === ch.chapter_index && ch.scenes" class="scenes-list">
                 <div v-for="scene in ch.scenes" :key="scene.scene_index" class="scene-item">
                   <span class="scene-badge">场景{{ scene.scene_index + 1 }}</span>
-                  <span class="scene-location">📍 {{ scene.location }}</span>
+                  <span class="scene-location">{{ scene.location }}</span>
                   <span class="scene-objective">{{ scene.objective }}</span>
                   <div class="scene-characters" v-if="scene.involved_characters?.length">
                     <el-tag v-for="cid in scene.involved_characters" :key="cid" size="small" type="info">{{ cid }}</el-tag>
@@ -72,7 +72,7 @@
             <div v-if="expandedChapter === ch.chapter_index && ch.scenes" class="scenes-list">
               <div v-for="scene in ch.scenes" :key="scene.scene_index" class="scene-item">
                 <span class="scene-badge">场景{{ scene.scene_index + 1 }}</span>
-                <span class="scene-location">📍 {{ scene.location }}</span>
+                <span class="scene-location">{{ scene.location }}</span>
                 <span class="scene-objective">{{ scene.objective }}</span>
                 <div class="scene-characters" v-if="scene.involved_characters?.length">
                   <el-tag v-for="cid in scene.involved_characters" :key="cid" size="small" type="info">{{ cid }}</el-tag>
@@ -85,6 +85,17 @@
         <EmptyState v-else message="大纲尚未生成，请先在概览页点击「开始创世」" />
       </template>
       <EmptyState v-else message="大纲尚未生成，请先在概览页点击「开始创世」" />
+    </div>
+
+    <!-- Horizontal Timeline Overview -->
+    <div class="timeline-overview" style="margin-bottom: var(--sp-lg)">
+      <span class="section-label">时间轴概览</span>
+      <HorizontalTimeline
+        :events="timelineStore.events"
+        :decisions="timelineStore.decisions"
+        :total-chapters="chapters.length || progressStore.total"
+        :completed-chapters="progressStore.completed"
+      />
     </div>
 
     <!-- Single-column vertical timeline -->
@@ -111,9 +122,12 @@ import { useWorldStore } from '@/stores/world'
 import { onWSEvent } from '@/composables/useWebSocket'
 import EmptyState from '@/components/common/EmptyState.vue'
 import EraCard from './EraCard.vue'
+import HorizontalTimeline from './HorizontalTimeline.vue'
+import { useProgressStore } from '@/stores/progress'
 
 const timelineStore = useTimelineStore()
 const worldStore = useWorldStore()
+const progressStore = useProgressStore()
 const loading = ref(false)
 const expandedChapter = ref(-1)
 
