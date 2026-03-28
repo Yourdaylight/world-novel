@@ -15,8 +15,8 @@
           <div class="chapter-view-header ledger-rule">
             <span class="chapter-title">{{ chapterText?.title ? `第${chapterStore.activeChapter + 1}章 ${chapterText.title}` : `第${chapterStore.activeChapter + 1}章` }}</span>
             <el-radio-group v-model="chapterStore.viewMode" size="small">
-              <el-radio-button value="narrative">📖 叙事视图</el-radio-button>
-              <el-radio-button value="actions">🎬 行动日志</el-radio-button>
+              <el-radio-button value="narrative">叙事视图</el-radio-button>
+              <el-radio-button value="actions">行动日志</el-radio-button>
             </el-radio-group>
           </div>
 

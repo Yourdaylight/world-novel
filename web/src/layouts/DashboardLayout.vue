@@ -86,7 +86,6 @@
 
         <!-- Token Counter -->
         <div class="footer-tokens" v-if="tokenTotal > 0">
-          <span class="token-icon">🪙</span>
           <span class="token-count font-data">{{ formatTokens(tokenTotal) }}</span>
           <span class="token-label">tokens</span>
         </div>
