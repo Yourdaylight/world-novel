@@ -2,213 +2,163 @@
 
 ## 产品定位
 
-- **产品描述:** 多Agent小说生成系统，通过独立AI角色的协作行为生成长篇网文
+- **产品描述:** 多Agent小说生成系统，AI角色自主协作生成长篇网文
 - **目标用户:** 中国网文创作者、AI创作探索者
-- **产品形态:** 专业创作工作台 (非展示性Demo)
+- **产品形态:** AI Agent编排和监控面板
 - **项目类型:** Web应用仪表板 (Vue 3 + Element Plus + SCSS)
 
 ## 设计方向
 
-- **方向:** 专业SaaS产品 (参考 Notion / Linear / GitHub Dark)
-- **核心原则:** 简洁、专业、克制。排版承担视觉工作，最少装饰
-- **基调:** 中性深色主题，GitHub Dark 风格启发。让内容而非界面成为焦点
-- **关键决策:**
-  - 内容以细边框分隔，使用有边框的卡片，而非浮起的矩形或无边框色块
-  - 中性深色取代暖紫黑，接近开发者工具和专业创作软件的视觉语言
-  - 叙事内容保留衬线字体，界面层全部使用无衬线字体
-  - UI导航、按钮、状态指示器中**不使用Emoji**
+- **方向:** 现代SaaS工具（参考 Linear / Vercel / Notion）
+- **默认主题:** 亮色（白底），支持暗色模式切换
+- **核心原则:** 干净、紧凑、专业。内容即界面，最少装饰
+- **强调色:** Orange #f97316 — 一个亮色贯穿全系统
 
 ---
 
-## 色彩
+## 主题系统
 
-### CSS 变量
+默认亮色，用户可切换暗色。通过 `html.dark` class 控制。
+
+### 亮色模式（默认）
 
 ```css
-:root {
-  /* === 基础背景 === */
-  --bg-void:      #0d1117;   /* 主背景，近纯黑 */
-  --bg-surface:   #161b22;   /* 面板/卡片背景 */
-  --bg-elevated:  #1c2128;   /* 抬升层，下拉菜单/模态框 */
+--bg-void:        #ffffff;
+--bg-surface:     #f9fafb;
+--bg-elevated:    #f3f4f6;
+--text-primary:   #111827;
+--text-secondary: #6b7280;
+--text-muted:     #9ca3af;
+--border-default: #e5e7eb;
+--border-muted:   #f3f4f6;
+```
 
-  /* === 文字 === */
-  --text-primary:   #e6edf3;   /* 主文字 */
-  --text-secondary: #8b949e;   /* 次要文字 */
-  --text-muted:     #484f58;   /* 极低对比度，真正次要信息 */
+### 暗色模式
 
-  /* === 强调色 === */
-  --accent-ember:     #d4793a;   /* 主操作色 */
-  --accent-blue:      #58a6ff;   /* 信息/链接 */
-  --accent-jade:      #3fb950;   /* 成功/积极状态 */
-  --accent-cinnabar:  #f85149;   /* 错误/警告 */
-  --accent-aurora:    #bc8cff;   /* 伏笔/记忆模块 */
-  --accent-phosphor:  #7ee787;   /* 当前活跃状态 */
-
-  /* === 边框 === */
-  --border-default: #30363d;   /* 标准边框 */
-  --border-muted:   #21262d;   /* 低调边框 */
+```css
+html.dark {
+  --bg-void:        #09090b;
+  --bg-surface:     #18181b;
+  --bg-elevated:    #27272a;
+  --text-primary:   #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-muted:     #52525b;
+  --border-default: #27272a;
+  --border-muted:   #1e1e22;
 }
 ```
 
-### 模块色彩分配
+### 强调色（两模式通用）
 
-| 模块 | 色彩变量 | 说明 |
-|------|----------|------|
-| 主操作/角色 | `--accent-ember` | 生成、确认等主要行为 |
-| 信息/链接 | `--accent-blue` | 链接、提示、说明性内容 |
-| 成功/世界 | `--accent-jade` | 完成状态、积极信号 |
-| 错误/警告 | `--accent-cinnabar` | 出错、危险操作 |
-| 伏笔/记忆 | `--accent-aurora` | 记忆模块、伏笔标记 |
-| 当前活跃 | `--accent-phosphor` | 实时运行的Agent |
-
-### 颜色使用原则
-
-- 使用 `--accent-ember` 作为唯一主行动色 (Primary CTA)
-- 不使用紫色/紫罗兰渐变作为默认强调色
-- 不使用装饰性发光效果 (glow)
-- 状态颜色语义明确，不混用
+| 名称 | 亮色 | 暗色 | 用途 |
+|------|------|------|------|
+| Orange (Primary) | `#f97316` | `#f97316` | 主操作、CTA、进度条、active状态 |
+| Blue | `#2563eb` | `#3b82f6` | 信息、伏笔 |
+| Green | `#16a34a` | `#22c55e` | 成功、完成 |
+| Red | `#dc2626` | `#ef4444` | 错误、冲突 |
+| Purple | `#7c3aed` | `#a78bfa` | 记忆、历史 |
+| Yellow | `#ca8a04` | `#eab308` | 警告、暂停 |
 
 ---
 
 ## 排版
 
-### 字体选择
+### 字体
 
-| 用途 | 字体 | 说明 |
-|------|------|------|
-| UI界面 | Inter, -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif | 导航、按钮、标签、表单 |
-| 阅读/叙事 | "Noto Serif SC", "Source Serif 4", Georgia, serif | 章节文本、角色对话 |
-| 数据/代码 | "JetBrains Mono", "Fira Code", monospace | 数值展示、代码块、Token计数 |
-
-**移除:** Cormorant Garamond (装饰性展示字体，不符合专业SaaS方向)
-
-### 加载方式
-
-```html
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-```
+| 用途 | 字体 |
+|------|------|
+| UI界面 | Inter, -apple-system, PingFang SC, Microsoft YaHei, sans-serif |
+| 阅读正文 | Noto Serif SC, Source Serif 4, STSong, serif |
+| 数据/代码 | JetBrains Mono, Menlo, monospace |
 
 ### 字体比例尺
 
 | 级别 | 大小 | 用途 |
 |------|------|------|
-| xs | 11px | 辅助标签、时间戳 |
-| sm | 13px | 界面文本、表格内容 |
-| base | 15px | 通用正文 |
-| md | 17px | 叙事正文 (章节、角色对话) |
-| lg | 22px | 区域标题 |
-| xl | 32px | 页面标题 |
-| 2xl | 48px | 数据展示 |
-| 3xl | 68px | 世界标题 (仪表板内) |
-| hero | 96px | 大尺寸展示文字 |
+| xs | 11px | 辅助标签 |
+| sm | 13px | 界面文本 |
+| base | 14px | 正文 |
+| md | 16px | 叙事正文 |
+| lg | 20px | 区域标题 |
+| xl | 28px | 页面标题 |
 
-### 行高规则
+### 行高
 
-- 数据区域: `line-height: 1.2` — 紧凑
-- 界面文本: `line-height: 1.5` — 标准
-- 英文叙事: `line-height: 1.85` — 宽松
-- 中文叙事: `line-height: 2.0` — 适应方块字结构
-- 段落间距 (叙事区): `margin-bottom: 1.2em`
+- 界面文本: 1.5
+- 叙事正文: 1.9
+- 数据区: 1.2
 
 ---
 
 ## 间距
 
-- **基础单位:** 8px
+8px 基础单位。
 
-| 变量名 | 值 | 用途 |
-|--------|----|------|
-| `--sp-2xs` | 2px | 最小间隙 |
-| `--sp-xs` | 4px | 紧凑元素间距 |
-| `--sp-sm` | 8px | 基础间距 |
-| `--sp-md` | 16px | 标准内边距 |
-| `--sp-lg` | 24px | 区块间距 |
-| `--sp-xl` | 32px | 大区域间距 |
-| `--sp-2xl` | 48px | 区段间距 |
-| `--sp-3xl` | 64px | 页面级间距 |
+| 变量 | 值 |
+|------|-----|
+| --sp-2xs | 2px |
+| --sp-xs | 4px |
+| --sp-sm | 8px |
+| --sp-md | 16px |
+| --sp-lg | 24px |
+| --sp-xl | 32px |
+| --sp-2xl | 48px |
+| --sp-3xl | 64px |
 
 ---
 
 ## 布局
 
-- **方式:** 固定侧边栏 + 弹性内容区
-- **栅格:**
-  - 侧边栏: 220px 固定宽度
-  - 内容区: 弹性填充，最大宽度 1100px
-  - 大屏 (>1440px): 内容区居左对齐，最大宽度 1100px
-  - 中屏 (768–1440px): 全宽减侧边栏
-  - 小屏 (<768px): 侧边栏收起为顶部导航
-
-- **圆角:**
-  - 卡片/面板: `border-radius: 6px`
-  - 按钮/输入框: `border-radius: 6px`
-  - 小标签/徽标: `border-radius: 4px`
-  - 头像: `border-radius: 50%`
-  - **不使用** 大圆角 (12px+)
-
-- **卡片规范:**
-  - 使用 `border: 1px solid var(--border-default)` + `background: var(--bg-surface)`
-  - 不使用 `box-shadow` 营造浮起效果
-  - 内容区域之间以边框线分隔，不以卡片堆叠区分层次
+- 侧边栏: 220px 固定
+- 内容区: 弹性，最大 1100px
+- 圆角: 6-8px（卡片/按钮），4px（标签）
+- 卡片: `border: 1px solid var(--border-default)` + `box-shadow: var(--shadow-sm)`
 
 ---
 
 ## 动效
 
-- **基础缓动:** `cubic-bezier(0.4, 0, 0.2, 1)` — 标准 Material-style ease
-- **时长:**
-  - 快速 (150ms): 状态切换、悬停效果、开关
-  - 基础 (200ms): 按钮反馈、下拉展开、面板显隐
-  - 慢速 (300ms): 视图切换、侧边栏展开、图谱加载
-
-- **不使用** 弹性弹跳 (spring)、悬浮缩放、装饰性脉搏动画
+- 快速: 150ms（状态切换）
+- 基础: 200ms（面板展开）
+- 慢速: 300ms（视图切换）
+- 缓动: `cubic-bezier(0.4, 0, 0.2, 1)`
 
 ---
 
 ## 状态文案规范
 
-界面中所有状态文字应遵循以下约定，保证一致性：
-
 ### 章节编号
+`第X章`
 
-- 格式: `第X章`（例：`第1章`、`第12章`）
+### 进度
+`X/Y章`（无空格）
 
-### 进度显示
-
-- 格式: `X/Y章`，无空格（例：`3/20章`）
-
-### Agent / 任务状态
-
-| 状态 | 显示文案 |
-|------|----------|
+### 状态
+| 状态 | 文案 |
+|------|------|
 | 未启动 | 待命 |
 | 运行中 | 生成中 |
-| 已暂停 | 已暂停 |
+| 暂停 | 已暂停 |
 | 完成 | 已完成 |
 | 异常 | 出错 |
 
-### 按钮文案
-
+### 按钮
 | 场景 | 文案 |
 |------|------|
-| 首次启动 | 开始生成 |
-| 从暂停继续 | 继续生成第X章 |
-| 运行中暂停 | 暂停 |
+| 首次 | 开始生成 |
+| 继续 | 继续生成第X章 |
+| 暂停 | 暂停 |
 
 ---
 
-## 反模式 (Anti-patterns)
+## 反模式
 
-以下模式**绝对不使用**:
-
-- **UI导航/按钮/状态中使用Emoji** — 不在导航项、按钮、状态标签中添加emoji
-- **紫色/紫罗兰渐变强调色** — 已明确分配给 `--accent-aurora` 仅用于记忆/伏笔模块
-- **装饰性发光效果** — 不使用 `text-shadow`、`box-shadow` glow 营造氛围
-- **居中布局** — 不将工作台内容居中排列，左对齐为主
-- **大圆角** — 不使用 `border-radius: 12px` 及以上
-- **渐变CTA按钮** — 主按钮使用纯色，不使用渐变背景
-- **三列特性展示** — 不在功能界面使用营销式布局
+- UI导航/按钮中使用 Emoji
+- 紫色/渐变强调色
+- 装饰性发光效果
+- 大圆角 (12px+)
+- 渐变CTA按钮
+- 纸纹理/古风元素
 
 ---
 
@@ -216,9 +166,8 @@
 
 | 日期 | 决策 | 理由 |
 |------|------|------|
-| 2026-03-27 | 初始设计系统创建 | 由 /design-consultation 基于产品定位创建 |
-| 2026-03-27 | 选择温暖紫黑色替代冷蓝灰 | 每个AI工具都用蓝色，琥珀色传达"有生命在活动" |
-| 2026-03-27 | 账簿式分区取代卡片布局 | 让仪表板像活的文档，视觉上独一无二 |
-| 2026-03-28 | **重写设计方向为专业SaaS** | 原"史官的仪器"方向过于装饰，实际实现出现Emoji、紫色渐变、居中布局等反模式。改为 GitHub Dark 启发的中性深色专业工作台，便于执行和QA |
-| 2026-03-28 | 移除 Cormorant Garamond | 装饰性展示字体与专业SaaS方向不符，界面层统一使用 Inter |
-| 2026-03-28 | 明确规定禁止UI层Emoji | 之前规范不清晰导致实现中大量使用，明确列入反模式 |
+| 2026-03-27 | 初始设计系统 | /design-consultation 创建 |
+| 2026-03-28 | 重写为专业SaaS | 原方向过于装饰 |
+| 2026-03-28 | 亮色/暗色双主题 | 用户需求，亮色为默认 |
+| 2026-03-28 | Orange #f97316 强调色 | 在蓝色AI工具中有辨识度 |
+| 2026-03-28 | 移除 Fraunces/DM Sans | 装饰性字体不符合工具定位，统一Inter |
