@@ -4,7 +4,7 @@
       <el-col :span="14">
         <div class="ledger-zone">
           <span class="section-label">关系图谱</span>
-          <RelationshipGraph />
+          <RelationshipGraph @node-click="onGraphNodeClick" />
         </div>
       </el-col>
       <el-col :span="10">
@@ -78,6 +78,13 @@ function openCharacter(char: Character) {
 
 function openAgentEditor() {
   agentEditorVisible.value = true
+}
+
+function onGraphNodeClick(characterId: string) {
+  const char = characterStore.characters.find(c => c.id === characterId)
+  if (char) {
+    openCharacter(char)
+  }
 }
 </script>
 
