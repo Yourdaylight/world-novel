@@ -1,47 +1,43 @@
 <template>
-  <div class="horizontal-timeline" v-if="totalChapters > 0">
-    <div class="timeline-scroll" ref="scrollContainer">
-      <div class="timeline-track" :style="{ width: trackWidth + 'px' }">
-        <div class="axis-line"></div>
-
-        <div
-          v-for="ch in totalChapters"
-          :key="ch"
-          class="chapter-marker"
-          :class="{ current: ch <= completedChapters, active: ch === activeChapter }"
-          :style="{ left: markerLeft(ch) + 'px' }"
-          @click="$emit('select-chapter', ch)"
-        >
-          <div class="marker-dot"></div>
-          <span class="marker-label">{{ ch }}</span>
+  <div class="vertical-timeline" v-if="totalChapters > 0">
+    <div class="timeline-track">
+      <!-- Chapter nodes -->
+      <div
+        v-for="ch in totalChapters"
+        :key="ch"
+        class="chapter-node"
+        :class="{ current: ch <= completedChapters }"
+      >
+        <div class="node-marker">
+          <div class="marker-dot" :class="{ completed: ch <= completedChapters }"></div>
+          <div class="marker-line" v-if="ch < totalChapters"></div>
         </div>
-
-        <div
-          v-for="(node, i) in eventNodes"
-          :key="'evt-' + i"
-          class="event-node"
-          :class="node.kind"
-          :style="{ left: markerLeft(node.chapter) + 'px' }"
-          @mouseenter="hoveredNode = node"
-          @mouseleave="hoveredNode = null"
-          @click="$emit('select-event', node)"
-        >
-          <div class="node-dot"></div>
-          <span class="node-label">{{ node.title.substring(0, 8) }}</span>
+        <div class="node-content">
+          <div class="node-header">
+            <span class="chapter-label">第{{ ch }}章</span>
+            <span class="chapter-status font-data" v-if="ch <= completedChapters">已完成</span>
+          </div>
+          <!-- Events for this chapter -->
+          <div class="node-events" v-if="eventsForChapter(ch).length > 0">
+            <div
+              v-for="(evt, i) in eventsForChapter(ch)"
+              :key="i"
+              class="event-item"
+              :class="evt.kind"
+            >
+              <span class="event-dot"></span>
+              <span class="event-title">{{ evt.title }}</span>
+              <span class="event-type font-data">{{ evt.kind === 'decision' ? '命运裁决' : evt.eventType || '事件' }}</span>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-
-    <div class="timeline-tooltip" v-if="hoveredNode">
-      <strong>{{ hoveredNode.title }}</strong>
-      <span class="tooltip-meta">第{{ hoveredNode.chapter }}章 · {{ hoveredNode.kind === 'decision' ? '命运裁决' : hoveredNode.eventType || '事件' }}</span>
-      <p v-if="hoveredNode.description">{{ hoveredNode.description.substring(0, 120) }}</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import type { TimelineEvent, GodDecision } from '@/api/types'
 
 const props = defineProps<{
@@ -49,11 +45,6 @@ const props = defineProps<{
   decisions: GodDecision[]
   totalChapters: number
   completedChapters: number
-}>()
-
-defineEmits<{
-  'select-chapter': [chapter: number]
-  'select-event': [node: EventNode]
 }>()
 
 interface EventNode {
@@ -64,20 +55,7 @@ interface EventNode {
   eventType?: string
 }
 
-const hoveredNode = ref<EventNode | null>(null)
-const scrollContainer = ref<HTMLElement | null>(null)
-const activeChapter = ref(0)
-
-const MARKER_GAP = 100
-const MARGIN = 40
-
-const trackWidth = computed(() => MARGIN * 2 + props.totalChapters * MARKER_GAP)
-
-function markerLeft(chapter: number): number {
-  return MARGIN + (chapter - 1) * MARKER_GAP
-}
-
-const eventNodes = computed<EventNode[]>(() => {
+const allNodes = computed<EventNode[]>(() => {
   const nodes: EventNode[] = []
 
   for (const e of props.events) {
@@ -103,137 +81,123 @@ const eventNodes = computed<EventNode[]>(() => {
 
   return nodes.sort((a, b) => a.chapter - b.chapter)
 })
+
+function eventsForChapter(ch: number): EventNode[] {
+  return allNodes.value.filter(n => n.chapter === ch)
+}
 </script>
 
 <style scoped lang="scss">
-.horizontal-timeline {
-  position: relative;
-  margin-bottom: var(--sp-lg);
-}
-
-.timeline-scroll {
-  overflow-x: auto;
-  padding: var(--sp-lg) 0 var(--sp-2xl) 0;
+.vertical-timeline {
+  padding: var(--sp-sm) 0;
 }
 
 .timeline-track {
-  position: relative;
-  height: 80px;
-  min-width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
-.axis-line {
-  position: absolute;
-  top: 20px;
-  left: 30px;
-  right: 30px;
-  height: 2px;
+.chapter-node {
+  display: flex;
+  gap: var(--sp-md);
+  min-height: 48px;
+}
+
+.node-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 20px;
+}
+
+.marker-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--border-default);
+  border: 2px solid var(--bg-void);
+  flex-shrink: 0;
+  z-index: 1;
+
+  &.completed {
+    background: var(--accent-jade);
+  }
+}
+
+.marker-line {
+  width: 2px;
+  flex: 1;
+  min-height: 16px;
   background: var(--border-default);
 }
 
-.chapter-marker {
-  position: absolute;
-  top: 12px;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  cursor: pointer;
-
-  .marker-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--border-default);
-    border: 2px solid var(--bg-void);
-    z-index: 1;
-  }
-
-  .marker-label {
-    font-family: var(--font-data);
-    font-size: 10px;
-    color: var(--text-muted);
-    margin-top: 4px;
-  }
-
-  &.current .marker-dot {
-    background: var(--accent-jade);
-  }
-
-  &.active .marker-dot {
-    background: var(--accent-ember);
-    box-shadow: 0 0 8px rgba(212, 121, 58, 0.4);
-  }
+.node-content {
+  flex: 1;
+  padding-bottom: var(--sp-md);
+  min-width: 0;
 }
 
-.event-node {
-  position: absolute;
-  top: 42px;
-  transform: translateX(-50%);
+.node-header {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  cursor: pointer;
-
-  .node-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--accent-jade);
-  }
-
-  .node-label {
-    font-family: var(--font-ui);
-    font-size: 9px;
-    color: var(--text-muted);
-    margin-top: 2px;
-    white-space: nowrap;
-    max-width: 60px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  &.decision .node-dot {
-    width: 12px;
-    height: 12px;
-    background: var(--accent-ember);
-  }
-
-  &:hover .node-dot {
-    transform: scale(1.4);
-  }
+  gap: var(--sp-sm);
+  margin-bottom: var(--sp-xs);
 }
 
-.timeline-tooltip {
-  position: absolute;
-  bottom: 0;
-  left: var(--sp-md);
-  right: var(--sp-md);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  padding: var(--sp-sm) var(--sp-md);
-  z-index: 10;
+.chapter-label {
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
 
-  strong {
-    display: block;
-    font-size: var(--fs-sm);
-    color: var(--text-primary);
-    margin-bottom: 2px;
-  }
+.chapter-status {
+  font-size: var(--fs-xs);
+  color: var(--accent-jade);
+}
 
-  .tooltip-meta {
-    font-size: var(--fs-xs);
-    color: var(--text-muted);
-    display: block;
-    margin-bottom: 4px;
-  }
+.node-events {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-xs);
+  margin-top: var(--sp-xs);
+}
 
-  p {
-    font-size: var(--fs-xs);
-    color: var(--text-secondary);
-    line-height: 1.4;
-    margin: 0;
-  }
+.event-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  padding: var(--sp-xs) 0;
+  font-size: var(--fs-xs);
+}
+
+.event-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-jade);
+  flex-shrink: 0;
+}
+
+.event-item.decision .event-dot {
+  background: var(--accent-ember);
+  width: 8px;
+  height: 8px;
+}
+
+.event-title {
+  color: var(--text-secondary);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.event-type {
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
 }
 </style>

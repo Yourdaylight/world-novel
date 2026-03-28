@@ -87,7 +87,7 @@
       <EmptyState v-else message="大纲尚未生成，请先在概览页点击「开始创世」" />
     </div>
 
-    <!-- Horizontal Timeline Overview -->
+    <!-- Vertical Timeline Overview -->
     <div class="timeline-overview" style="margin-bottom: var(--sp-lg)">
       <span class="section-label">时间轴概览</span>
       <HorizontalTimeline

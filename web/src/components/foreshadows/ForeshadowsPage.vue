@@ -3,7 +3,7 @@
     <div class="page-header">
       <span class="section-label" style="margin-bottom: 0;">伏笔与剧情线</span>
       <el-button size="small" @click="refreshData" :loading="refreshing">
-        🔄 刷新
+        刷新
       </el-button>
     </div>
 
@@ -18,7 +18,7 @@
               :foreshadow="f"
             />
           </template>
-          <EmptyState v-else message="暂无伏笔数据，完成创世后自动生成" />
+          <EmptyState v-else message="暂无伏笔数据，生成完成后自动出现" />
         </div>
       </el-col>
       <el-col :span="10">
@@ -31,7 +31,7 @@
               :thread="t"
             />
           </template>
-          <EmptyState v-else message="暂无剧情线数据" icon="🧵" />
+          <EmptyState v-else message="暂无剧情线数据" />
         </div>
       </el-col>
     </el-row>
