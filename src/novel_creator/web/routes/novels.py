@@ -32,12 +32,38 @@ class SelectNovelRequest(BaseModel):
 
 @router.get("/novels")
 async def api_list_novels():
-    """List all registered novels."""
+    """List all registered novels with DB-accurate chapter counts."""
     registry = load_registry()
-    novels = [n.model_dump() for n in registry.novels]
-    # Serialize datetime
-    for n in novels:
-        n["created_at"] = str(n["created_at"])
+    novels = []
+    for n in registry.novels:
+        data = n.model_dump()
+        data["created_at"] = str(data["created_at"])
+        # Override stale in-memory counts with DB ground truth
+        try:
+            conn = await get_connection(n.db_path)
+            # Actual completed chapters
+            cursor = await conn.execute("SELECT COUNT(DISTINCT chapter_index) FROM chapter_texts")
+            row = await cursor.fetchone()
+            actual_completed = row[0] if row else 0
+            # Total planned from outline
+            cursor2 = await conn.execute("SELECT outline_json FROM story_outline LIMIT 1")
+            outline_row = await cursor2.fetchone()
+            actual_total = 0
+            if outline_row:
+                import json as _json
+                outline_data = _json.loads(outline_row[0])
+                actual_total = len(outline_data.get("chapters", []))
+            await conn.close()
+            # Sync registry to reality
+            if actual_completed != n.chapters_completed:
+                n.chapters_completed = actual_completed
+            if actual_total > 0 and actual_total != n.chapters_total:
+                n.chapters_total = actual_total
+            data["chapters_completed"] = actual_completed
+            data["chapters_total"] = actual_total if actual_total > 0 else n.chapters_total
+        except Exception:
+            pass
+        novels.append(data)
     return {
         "novels": novels,
         "active_novel_id": registry.active_novel_id,
@@ -143,6 +169,7 @@ async def api_world_status(novel_id: str):
     # Get DB progress from checkpoints
     progress = {"completed": 0, "total": 0, "phase": "idle", "paused": False}
     actual_chapter_count = 0
+    actual_total = 0
     try:
         conn = await get_connection(novel.db_path)
         cursor = await conn.execute(
@@ -156,13 +183,19 @@ async def api_world_status(novel_id: str):
                 "phase": row["phase"],
                 "paused": row["phase"] not in ("done",),
             }
-        # Also count actual chapters in DB as ground truth
+        # Count actual chapters in DB as ground truth
         cursor2 = await conn.execute(
             "SELECT COUNT(DISTINCT chapter_index) FROM chapter_texts"
         )
         count_row = await cursor2.fetchone()
         if count_row:
             actual_chapter_count = count_row[0]
+        # Read total from outline
+        cursor3 = await conn.execute("SELECT outline_json FROM story_outline LIMIT 1")
+        outline_row = await cursor3.fetchone()
+        if outline_row:
+            outline_data = json.loads(outline_row[0])
+            actual_total = len(outline_data.get("chapters", []))
         await conn.close()
     except Exception:
         pass
@@ -171,10 +204,14 @@ async def api_world_status(novel_id: str):
     # - During active generation: registry value is live-updated, trust it
     # - Otherwise: use DB actual count as ground truth
     chapters_completed = novel.chapters_completed
-    if not is_running and actual_chapter_count != chapters_completed:
-        chapters_completed = actual_chapter_count
-        # Sync registry to match reality
-        novel.chapters_completed = actual_chapter_count
+    chapters_total = novel.chapters_total
+    if not is_running:
+        if actual_chapter_count != chapters_completed:
+            chapters_completed = actual_chapter_count
+            novel.chapters_completed = actual_chapter_count
+        if actual_total > 0 and actual_total != chapters_total:
+            chapters_total = actual_total
+            novel.chapters_total = actual_total
 
     return {
         "novel_id": novel_id,
@@ -182,7 +219,7 @@ async def api_world_status(novel_id: str):
         "status": novel.status,
         "is_running": is_running,
         "chapters_completed": chapters_completed,
-        "chapters_total": novel.chapters_total,
+        "chapters_total": chapters_total,
         "word_count": novel.word_count,
         "progress": progress,
     }

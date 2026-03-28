@@ -340,16 +340,25 @@ async def get_progress(novel_id: str | None = Query(None)):
                 "checkpoint_id": row["checkpoint_id"],
                 "novel_title": row["novel_title"],
             }
-        # No checkpoint — count actual chapters as fallback
+        # No checkpoint — count actual chapters and read total from outline
         cursor2 = await conn.execute(
             "SELECT COUNT(DISTINCT chapter_index) FROM chapter_texts"
         )
         count_row = await cursor2.fetchone()
         actual = count_row[0] if count_row else 0
+        # Read total from outline
+        total = 0
+        try:
+            cursor3 = await conn.execute("SELECT outline_json FROM story_outline LIMIT 1")
+            outline_row = await cursor3.fetchone()
+            if outline_row:
+                import json as _json
+                outline_data = _json.loads(outline_row[0])
+                total = len(outline_data.get("chapters", []))
+        except Exception:
+            pass
         await conn.close()
-        if actual > 0:
-            return {"completed": actual, "total": 0, "phase": "idle", "paused": False}
-        return {"completed": 0, "total": 0, "phase": "idle", "paused": False}
+        return {"completed": actual, "total": total, "phase": "idle", "paused": False}
     except Exception as e:
         return {"error": str(e), "completed": 0, "total": 0, "phase": "error", "paused": False}
 
