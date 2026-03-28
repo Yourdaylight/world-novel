@@ -6,8 +6,12 @@
         <button class="back-link" @click="router.push('/')">← 首页</button>
         <h1 class="world-name">WorldEngine</h1>
         <div class="simulation-status" v-if="novelStore.activeNovelId">
-          <span class="status-indicator" :class="{ 'is-running': isRunning }">●</span>
-          <span class="status-text">{{ isRunning ? '模拟运行中' : '待命' }}</span>
+          <span class="status-dot" :class="statusClass">●</span>
+          <span class="status-text">{{ statusLabel }}</span>
+        </div>
+        <div class="ws-status" v-if="!wsConnected">
+          <span class="ws-dot">●</span>
+          <span class="ws-label">重连中...</span>
         </div>
       </div>
       <nav class="sidebar-nav">
@@ -18,10 +22,14 @@
           :class="{ active: activeTab === tab.name }"
           @click="onTabChange(tab.name)"
         >
-          <span class="nav-icon">{{ tab.icon }}</span>
           <span class="nav-label">{{ tab.label }}</span>
         </a>
       </nav>
+
+      <!-- Historian shortcut -->
+      <div class="historian-shortcut" @click="onTabChange('historian')" v-if="novelStore.activeNovelId">
+        与史官对话
+      </div>
 
       <!-- Sidebar Footer: Generation Control -->
       <div class="sidebar-footer" v-if="novelStore.activeNovelId">
@@ -37,6 +45,14 @@
             :show-text="false"
             :color="progressBarColor"
           />
+        </div>
+
+        <!-- Mini event feed -->
+        <div class="mini-events" v-if="recentEvents.length > 0">
+          <div v-for="evt in recentEvents" :key="evt.time + evt.text" class="mini-event" @click="onTabChange('overview')">
+            <span class="mini-time">{{ evt.time.substring(0, 5) }}</span>
+            <span class="mini-text">{{ evt.text.substring(0, 30) }}</span>
+          </div>
         </div>
 
         <!-- Control Buttons -->
@@ -56,7 +72,7 @@
             size="small"
             @click="handleResume"
           >
-            ▶ 继续
+            ▶ 继续生成第{{ progressStore.completed + 1 }}章
           </el-button>
           <el-button
             v-if="isRunning"
@@ -91,24 +107,26 @@ import { useRouter, useRoute } from 'vue-router'
 import { useWebSocket, onWSEvent } from '@/composables/useWebSocket'
 import { useNovelStore } from '@/stores/novel'
 import { useProgressStore } from '@/stores/progress'
+import { useEventLogStore } from '@/stores/eventLog'
 import client from '@/api/client'
 
 const router = useRouter()
 const route = useRoute()
 const novelStore = useNovelStore()
 const progressStore = useProgressStore()
+const eventLogStore = useEventLogStore()
 const tokenTotal = ref(0)
 
 const tabs = [
-  { name: 'overview', label: '概览', icon: '📖' },
-  { name: 'world-view', label: '世界观', icon: '🌍' },
-  { name: 'characters', label: '角色', icon: '👥' },
-  { name: 'timeline', label: '大纲与时间线', icon: '📋' },
-  { name: 'foreshadows', label: '伏笔', icon: '🔮' },
-  { name: 'chapters', label: '章节', icon: '📝' },
-  { name: 'novel', label: '成书', icon: '📚' },
-  { name: 'historian', label: '史官', icon: '📜' },
-  { name: 'control', label: '控制台', icon: '⚙️' },
+  { name: 'overview',    label: '概览' },
+  { name: 'world-view',  label: '世界观' },
+  { name: 'characters',  label: '角色' },
+  { name: 'timeline',    label: '大纲与时间线' },
+  { name: 'foreshadows', label: '伏笔' },
+  { name: 'chapters',    label: '章节' },
+  { name: 'novel',       label: '成书' },
+  { name: 'tokens',      label: 'Token 统计' },
+  { name: 'control',     label: '控制台' },
 ]
 
 const activeTab = ref(route.name as string || 'overview')
@@ -121,6 +139,26 @@ const progressBarColor = computed(() => {
   if (progressStore.paused) return '#64748b'
   if (progressStore.phase === 'done') return '#4ec994'
   return '#d4793a'
+})
+
+const statusClass = computed(() => {
+  if (progressStore.phase === 'error') return 'error'
+  if (progressStore.phase === 'done') return 'done'
+  if (progressStore.paused) return 'paused'
+  if (isRunning.value) return 'running'
+  return 'idle'
+})
+
+const statusLabel = computed(() => {
+  if (progressStore.phase === 'error') return '出错'
+  if (progressStore.phase === 'done') return `已完成 · ${progressStore.completed}/${progressStore.total}章`
+  if (progressStore.paused) return `已暂停 · ${progressStore.completed}/${progressStore.total}章`
+  if (isRunning.value) return `生成中 · ${progressStore.completed}/${progressStore.total}章`
+  return '待命'
+})
+
+const recentEvents = computed(() => {
+  return eventLogStore.entries.slice(-5).reverse()
 })
 
 function formatTokens(n: number): string {
@@ -175,7 +213,7 @@ function onTabChange(name: string | number) {
 }
 
 // WebSocket connection
-const { connect, disconnect } = useWebSocket()
+const { connect, disconnect, connected: wsConnected } = useWebSocket()
 onMounted(() => {
   connect()
   novelStore.loadNovels()
@@ -250,16 +288,34 @@ onUnmounted(() => {
   font-family: var(--font-ui);
   font-size: var(--fs-xs);
   color: var(--text-muted);
+}
 
-  .status-indicator {
+.ws-status {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-xs);
+  margin-top: var(--sp-xs);
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+
+  .ws-dot {
     font-size: 8px;
-    color: var(--text-muted);
-
-    &.is-running {
-      color: var(--accent-ember);
-      animation: status-pulse 2s ease-in-out infinite;
-    }
+    color: var(--accent-cinnabar);
   }
+
+  .ws-label {
+    color: var(--text-muted);
+  }
+}
+
+.status-dot {
+  font-size: 8px;
+  &.idle { color: var(--text-muted); }
+  &.running { color: var(--accent-ember); animation: status-pulse 2s ease-in-out infinite; }
+  &.paused { color: var(--accent-blue, #58a6ff); }
+  &.done { color: var(--accent-jade); }
+  &.error { color: var(--accent-cinnabar); }
 }
 
 .sidebar-nav {
@@ -291,15 +347,26 @@ onUnmounted(() => {
     background: var(--accent-ember-dim);
   }
 
-  .nav-icon {
-    font-size: var(--fs-base);
-    width: 20px;
-    text-align: center;
-    flex-shrink: 0;
-  }
-
   .nav-label {
     white-space: nowrap;
+  }
+}
+
+.historian-shortcut {
+  padding: var(--sp-sm) var(--sp-md);
+  margin: var(--sp-xs) var(--sp-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: center;
+
+  &:hover {
+    color: var(--text-primary);
+    border-color: var(--accent-ember);
   }
 }
 
@@ -325,6 +392,38 @@ onUnmounted(() => {
     color: var(--text-secondary);
     font-size: var(--fs-xs);
   }
+}
+
+.mini-events {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: var(--sp-xs);
+}
+
+.mini-event {
+  display: flex;
+  gap: var(--sp-xs);
+  padding: 2px 0;
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 1.4;
+
+  &:hover .mini-text { color: var(--text-secondary); }
+}
+
+.mini-time {
+  color: var(--text-muted);
+  font-family: var(--font-data);
+  flex-shrink: 0;
+}
+
+.mini-text {
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .footer-controls {
