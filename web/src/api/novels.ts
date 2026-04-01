@@ -1,5 +1,5 @@
 import client from './client'
-import type { NovelsResponse, NovelInfo, CreateWorldRequest, CreateWorldResponse, Propositions, AiAnalysisResult } from './types'
+import type { NovelsResponse, NovelInfo, CreateWorldRequest, CreateWorldResponse, Propositions, AiAnalysisResult, SimulationBeat, SimulationProgress } from './types'
 
 export async function fetchNovels(): Promise<NovelsResponse> {
   const { data } = await client.get('/novels')
@@ -56,5 +56,58 @@ export async function resumeGeneration(novelId: string, mode: string = 'full', g
 
 export async function pauseGeneration(novelId: string): Promise<{ ok: boolean; message?: string; error?: string }> {
   const { data } = await client.post(`/worlds/${novelId}/pause`)
+  return data
+}
+
+export async function rewriteChapter(
+  novelId: string,
+  chapterIndex: number,
+  guidance: string = ''
+): Promise<{ ok: boolean; word_count?: number; title?: string; error?: string }> {
+  const { data } = await client.post(`/worlds/${novelId}/rewrite-chapter`, {
+    chapter_index: chapterIndex,
+    guidance,
+  })
+  return data
+}
+
+export async function writeChapter(
+  novelId: string,
+  chapterIndex: number,
+  guidance: string = ''
+): Promise<{ ok: boolean; word_count?: number; title?: string; error?: string }> {
+  const { data } = await client.post(`/worlds/${novelId}/write-chapter`, {
+    chapter_index: chapterIndex,
+    guidance,
+  })
+  return data
+}
+
+// ======================================================================
+// V9: Decoupled pipeline — Preparation + Simulation APIs
+// ======================================================================
+
+export async function startPreparation(novelId: string, mode: string = 'full'): Promise<{ ok: boolean; message?: string; error?: string }> {
+  const { data } = await client.post(`/worlds/${novelId}/prepare`, { mode })
+  return data
+}
+
+export async function startSimulation(novelId: string): Promise<{ ok: boolean; message?: string; beat_count?: number; error?: string }> {
+  const { data } = await client.post(`/worlds/${novelId}/simulate`)
+  return data
+}
+
+export async function stopSimulation(novelId: string): Promise<{ ok: boolean; message?: string }> {
+  const { data } = await client.post(`/worlds/${novelId}/stop-simulation`)
+  return data
+}
+
+export async function fetchSimulationProgress(novelId: string): Promise<SimulationProgress> {
+  const { data } = await client.get(`/worlds/${novelId}/simulation-progress`)
+  return data
+}
+
+export async function fetchSimulationBeats(novelId: string): Promise<{ beats: SimulationBeat[]; total: number }> {
+  const { data } = await client.get(`/worlds/${novelId}/simulation-beats`)
   return data
 }

@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS character_actions (
     character_id TEXT NOT NULL,
     chapter_index INTEGER NOT NULL,
     scene_index INTEGER NOT NULL,
+    beat_id TEXT DEFAULT '',
     action_type TEXT NOT NULL,
     content TEXT NOT NULL,
     target_character_id TEXT,
@@ -215,6 +216,7 @@ CREATE TABLE IF NOT EXISTS world_propositions (
     what_is TEXT DEFAULT '',
     where_from TEXT DEFAULT '',
     where_to TEXT DEFAULT '',
+    expected_word_count INTEGER DEFAULT 1000000,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -310,6 +312,64 @@ CREATE TABLE IF NOT EXISTS relationship_history (
 
 CREATE INDEX IF NOT EXISTS idx_rel_history_chapter ON relationship_history(chapter_index);
 CREATE INDEX IF NOT EXISTS idx_rel_history_pair ON relationship_history(source_id, target_id);
+
+CREATE TABLE IF NOT EXISTS scene_turns (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    chapter_index INTEGER NOT NULL,
+    scene_index INTEGER NOT NULL,
+    beat_id TEXT DEFAULT '',
+    turn_index INTEGER NOT NULL,
+    character_id TEXT NOT NULL,
+    turn_type TEXT NOT NULL,
+    content TEXT NOT NULL,
+    target_id TEXT,
+    is_visible INTEGER DEFAULT 1,
+    emotional_shift TEXT DEFAULT '{}',
+    location TEXT DEFAULT '',
+    story_time TEXT DEFAULT '',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_scene_turns_chapter ON scene_turns(chapter_index);
+CREATE INDEX IF NOT EXISTS idx_scene_turns_scene ON scene_turns(chapter_index, scene_index);
+
+CREATE TABLE IF NOT EXISTS scene_metadata (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    chapter_index INTEGER NOT NULL,
+    scene_index INTEGER NOT NULL,
+    beat_id TEXT DEFAULT '',
+    location TEXT DEFAULT '',
+    story_time TEXT DEFAULT '',
+    total_turns INTEGER DEFAULT 0,
+    ended_by TEXT DEFAULT '',
+    opening_decisions_json TEXT DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(chapter_index, scene_index)
+);
+
+-- V9: Simulation beats (decoupled timeline events)
+CREATE TABLE IF NOT EXISTS simulation_beats (
+    beat_id TEXT PRIMARY KEY,
+    sequence INTEGER NOT NULL UNIQUE,
+    story_time TEXT DEFAULT '',
+    era_id TEXT DEFAULT '',
+    location TEXT NOT NULL,
+    involved_characters TEXT DEFAULT '[]',
+    objective TEXT NOT NULL,
+    conflict TEXT DEFAULT '',
+    tone TEXT DEFAULT 'neutral',
+    status TEXT DEFAULT 'pending',
+    suggested_chapter INTEGER,
+    parallel_group TEXT,
+    foreshadows_to_plant TEXT DEFAULT '[]',
+    foreshadows_to_payoff TEXT DEFAULT '[]',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_sim_beats_status ON simulation_beats(status);
+CREATE INDEX IF NOT EXISTS idx_sim_beats_sequence ON simulation_beats(sequence);
+CREATE INDEX IF NOT EXISTS idx_sim_beats_chapter ON simulation_beats(suggested_chapter);
+CREATE INDEX IF NOT EXISTS idx_sim_beats_parallel ON simulation_beats(parallel_group);
 """
 
 
@@ -334,6 +394,34 @@ async def get_connection(db_path: str | None = None) -> aiosqlite.Connection:
     await conn.execute("PRAGMA synchronous=NORMAL")
 
     await conn.executescript(SCHEMA_SQL)
+
+    # Migrations for existing databases
+    try:
+        await conn.execute(
+            "ALTER TABLE world_propositions ADD COLUMN expected_word_count INTEGER DEFAULT 1000000"
+        )
+        await conn.commit()
+    except Exception:
+        pass  # Column already exists
+
+    # V6: Migrate old default (0) to new default (1000000)
+    try:
+        await conn.execute(
+            "UPDATE world_propositions SET expected_word_count = 1000000 "
+            "WHERE expected_word_count = 0 OR expected_word_count IS NULL"
+        )
+        await conn.commit()
+    except Exception:
+        pass  # Table may not exist yet
+
+    # V9: Migrations — add beat_id columns if missing
+    for table in ("scene_turns", "character_actions", "scene_metadata"):
+        try:
+            await conn.execute(f"ALTER TABLE {table} ADD COLUMN beat_id TEXT DEFAULT ''")
+            await conn.commit()
+        except Exception:
+            pass  # Column already exists
+
     return conn
 
 

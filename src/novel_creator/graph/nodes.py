@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from novel_creator.agents.character import CharacterAgent
 from novel_creator.agents.director import run_director
 from novel_creator.agents.reviewer import ReviewerAgent
+from novel_creator.agents.scene_graph import SceneGraph as SceneOrchestrator
 from novel_creator.agents.writer import WriterAgent
 from novel_creator.config import settings
 from novel_creator.graph.state import NovelGenerationState
@@ -66,13 +67,52 @@ async def director_node(state: NovelGenerationState) -> dict:
         except Exception:
             pass  # Non-critical, continue with original premise
 
+    # V6: Derive num_chapters from expected_word_count
+    # Each chapter = 2000-3000 words (avg 2500). Total word count determines chapter count.
+    # But LLM can't plan 400 chapters at once — cap detail planning per batch.
+    # total_target = real chapter count for the whole novel (used for volume structure)
+    # num_chapters  = how many chapters the LLM outputs detailed scenes for this batch
+    num_chapters = state.get("num_chapters", 3)
+    total_target = num_chapters  # default: same as planned
+    if db_path:
+        try:
+            conn_wc = await get_connection(db_path)
+            cursor_wc = await conn_wc.execute(
+                "SELECT expected_word_count FROM world_propositions WHERE id = 1"
+            )
+            wc_row = await cursor_wc.fetchone()
+            await conn_wc.close()
+            if wc_row and wc_row["expected_word_count"] and wc_row["expected_word_count"] > 0:
+                total_target = max(num_chapters, wc_row["expected_word_count"] // 2500)
+                # Cap detail planning per batch — LLM structured output can
+                # reliably handle ~20 chapters with full scene details.
+                # More chapters are added via resume/continue.
+                num_chapters = min(20, total_target)
+                logger.info(
+                    f"  [dim]📐 预期{wc_row['expected_word_count']}字 → "
+                    f"总计约{total_target}章, 本批规划{num_chapters}章 (每章≈2500字)[/]"
+                )
+        except Exception:
+            pass
+
+    # Auto-derive volumes for long novels — based on TOTAL target, not batch
+    num_volumes = state.get("num_volumes", 0)
+    if total_target >= 10 and num_volumes == 0:
+        # ~40-50 chapters per volume for long novels, minimum 2 volumes
+        num_volumes = max(2, total_target // 40)
+        logger.info(
+            f"  [dim]📚 自动规划 {num_volumes} 卷 "
+            f"(全书{total_target}章, 每卷约{total_target // num_volumes}章)[/]"
+        )
+
     result = await run_director(
         genre=state["genre"],
         theme=state["theme"],
         premise=premise,
-        num_chapters=state.get("num_chapters", 3),
+        num_chapters=num_chapters,
         num_characters=state.get("num_characters", 3),
-        num_volumes=state.get("num_volumes", 0),
+        num_volumes=num_volumes,
+        total_chapters=total_target,
     )
 
     # Initialize character memories in DB
@@ -143,6 +183,7 @@ async def director_node(state: NovelGenerationState) -> dict:
         "chapters_completed": [],
         "chapter_summaries": [],
         "character_actions": [],
+        "scene_transcripts": [],
         "phase": "world_building",
         "timeline": timeline,
     }
@@ -377,6 +418,10 @@ async def simulate_scene_node(state: NovelGenerationState) -> dict:
     # V2: Prepare world context
     world = state.get("world_view")
     world_context = world.summary() if world else ""
+
+    # V7: Inject three propositions into world_context so every character
+    # agent sees the foundational world premise during scene simulation.
+    world_context = await _inject_propositions(db_path, world_context)
     location_detail = ""
     if world:
         loc = world.get_location(scene_beat.location)
@@ -386,15 +431,14 @@ async def simulate_scene_node(state: NovelGenerationState) -> dict:
     # V3: Timeline context
     timeline = state.get("timeline")
 
-    # V3: God decision guidance for this chapter
-    god_decision = state.get("god_decision")
-    god_guidance = ""
-    if god_decision and god_decision.next_chapter_guidance:
-        god_guidance = god_decision.next_chapter_guidance
-
     # Create character agents for involved characters
     involved_ids = scene_beat.involved_characters
     agents: dict[str, CharacterAgent] = {}
+
+    # Build character name map for event emission
+    char_name_map: dict[str, str] = {}
+    for c in state.get("characters", []):
+        char_name_map[c.character_id] = c.name
 
     # V3: Determine agent_dir for soul.md injection
     novel_dir = Path(db_path).parent if db_path else None
@@ -404,62 +448,32 @@ async def simulate_scene_node(state: NovelGenerationState) -> dict:
         agent_dir = (novel_dir / "agents" / cid) if novel_dir else None
         agents[cid] = CharacterAgent(cid, mem, agent_dir=agent_dir)
 
-    # --- Round 1: Independent actions (parallel) ---
-    logger.info("  [dim]第一轮: 独立行动...[/]")
-    round1_tasks = [
-        agent.process_scene(
-            chapter_index=chapter_idx,
-            scene_index=scene_idx,
-            location=scene_beat.location,
-            scene_objective=scene_beat.objective,
-            present_character_ids=involved_ids,
-            other_actions=None,
-            world_context=world_context,
-            location_detail=location_detail,
-            timeline=timeline,
-        )
-        for agent in agents.values()
-    ]
-    round1_results = await asyncio.gather(*round1_tasks, return_exceptions=True)
+    # --- V5→V6: SceneOrchestrator — no god_guidance injection into simulation ---
+    orchestrator = SceneOrchestrator(
+        agents=agents,
+        scene_beat=scene_beat,
+        chapter_index=chapter_idx,
+        scene_index=scene_idx,
+        world_context=world_context,
+        location_detail=location_detail,
+        timeline=timeline,
+        char_name_map=char_name_map,
+    )
+    result = await orchestrator.run()
 
-    all_actions = []
-    round1_actions = []
-    for result in round1_results:
-        if isinstance(result, Exception):
-            logger.info(f"  [red]⚠️ 角色行动失败: {result}[/]")
-            continue
-        round1_actions.extend(result)
-        all_actions.extend(result)
+    all_actions = result.character_actions
 
-    # --- Round 2: Reactions to others (parallel) ---
-    logger.info("  [dim]第二轮: 互相反应...[/]")
-    round2_tasks = [
-        agent.process_scene(
-            chapter_index=chapter_idx,
-            scene_index=scene_idx,
-            location=scene_beat.location,
-            scene_objective=scene_beat.objective,
-            present_character_ids=involved_ids,
-            other_actions=[a for a in round1_actions if a.character_id != cid],
-            world_context=world_context,
-            location_detail=location_detail,
-            timeline=timeline,
-        )
-        for cid, agent in agents.items()
-    ]
-    round2_results = await asyncio.gather(*round2_tasks, return_exceptions=True)
-
-    for result in round2_results:
-        if isinstance(result, Exception):
-            logger.info(f"  [red]⚠️ 角色反应失败: {result}[/]")
-            continue
-        all_actions.extend(result)
+    # Persist scene turns to DB for writer timeline access
+    await _persist_scene_result(conn, chapter_idx, scene_idx, scene_beat.location, result)
 
     await conn.close()
 
-    logger.info(f"  [green]✅ 场景模拟完成: {len(all_actions)} 个行动[/]")
+    logger.info(f"  [green]✅ 场景模拟完成: {len(all_actions)} 个行动, {result.total_turns} 轮对话[/]")
     await emit_event("scene_simulated", {
-        "chapter": chapter_idx, "scene": scene_idx, "action_count": len(all_actions),
+        "chapter": chapter_idx, "scene": scene_idx,
+        "action_count": len(all_actions),
+        "total_turns": result.total_turns,
+        "ended_by": result.ended_by,
     })
 
     # Flush token usage & emit relationship update
@@ -469,6 +483,7 @@ async def simulate_scene_node(state: NovelGenerationState) -> dict:
     return {
         "character_actions": state.get("character_actions", []) + all_actions,
         "current_scene": scene_idx + 1,
+        "scene_transcripts": state.get("scene_transcripts", []) + [result],
     }
 
 
@@ -504,14 +519,37 @@ async def write_chapter_node(state: NovelGenerationState) -> dict:
 
     # V2: Load pending foreshadows for this chapter
     db_path = state.get("db_path")
+
+    # V7: Inject three propositions into writer's world_context
+    world_context = await _inject_propositions(db_path, world_context)
+
     conn = await get_connection(db_path)
     from novel_creator.memory import foreshadow_store
     to_plant, to_payoff = await foreshadow_store.get_pending_for_chapter(conn, chapter_idx)
+
+    # V5: Load expected word count for writer guidance
+    expected_word_count = 0
+    try:
+        cursor_wc = await conn.execute(
+            "SELECT expected_word_count FROM world_propositions WHERE id = 1"
+        )
+        wc_row = await cursor_wc.fetchone()
+        if wc_row and wc_row["expected_word_count"]:
+            expected_word_count = wc_row["expected_word_count"]
+    except Exception:
+        pass  # Column may not exist in older DBs
+
     await conn.close()
 
     # V3: Build god context for writer
     god_decision = state.get("god_decision")
     god_context = _build_god_context_for_writer(god_decision) if god_decision else ""
+
+    # V8: Load full chapter timeline from DB for non-linear narrative
+    char_name_map: dict[str, str] = {}
+    for c in state["characters"]:
+        char_name_map[c.character_id] = c.name
+    chapter_timeline = await _load_chapter_timeline(conn, chapter_idx, char_name_map)
 
     # Write each scene
     scenes = []
@@ -531,11 +569,19 @@ async def write_chapter_node(state: NovelGenerationState) -> dict:
             if loc:
                 location_description = f"{loc.name}: {loc.description}"
 
+        # V5: Find scene transcript for this scene
+        scene_transcript = None
+        scene_transcripts = state.get("scene_transcripts", [])
+        for st in scene_transcripts:
+            # Match by checking if the transcript has actions for this scene
+            if st.character_actions and st.character_actions[0].scene_index == scene_beat.scene_index:
+                scene_transcript = st
+                break
+
         scene = await writer.write_scene(
             chapter_index=chapter_idx,
             scene_index=scene_beat.scene_index,
             location=scene_beat.location,
-            scene_objective=scene_beat.objective,
             character_actions=scene_actions,
             character_profiles=char_profiles,
             previous_context=prev_context,
@@ -543,6 +589,10 @@ async def write_chapter_node(state: NovelGenerationState) -> dict:
             location_description=location_description,
             foreshadow_instructions=foreshadow_instructions,
             god_context=god_context,
+            director_intent=scene_beat.objective,
+            scene_transcript=scene_transcript,
+            word_count_target=_calc_scene_word_target(expected_word_count, len(chapter_outline.scenes), len(outline.chapters)),
+            chapter_timeline=chapter_timeline,
         )
         scenes.append(scene)
         logger.info(f"  [dim]场景{scene_beat.scene_index+1} 写作完成[/]")
@@ -602,6 +652,7 @@ async def write_chapter_node(state: NovelGenerationState) -> dict:
         "current_chapter": chapter_idx + 1,
         "current_scene": 0,
         "character_actions": [],  # Clear for next chapter
+        "scene_transcripts": [],  # V5: Clear transcripts for next chapter
         "phase": "reviewing",
     }
 
@@ -969,3 +1020,176 @@ def _build_foreshadow_instructions(
                 lines.append(f"🔵 请在叙事中揭示/回收: {fs.description}")
 
     return "\n".join(lines)
+
+
+def _calc_scene_word_target(
+    expected_word_count: int,
+    num_scenes: int,
+    num_chapters: int,
+) -> int:
+    """Per-scene word target. Always returns 0 — writer uses fixed 800-1500 default.
+
+    The total word count is achieved by having enough chapters (num_chapters),
+    not by inflating per-scene word counts. Each chapter stays at 2000-3000 words.
+    """
+    return 0
+
+
+def _esc_braces(s: str) -> str:
+    """Escape ``{`` / ``}`` so downstream ``.format()`` calls don't explode."""
+    return s.replace("{", "{{").replace("}", "}}")
+
+
+async def _inject_propositions(db_path: str | None, world_context: str) -> str:
+    """Load the three world propositions from DB and prepend to world_context.
+
+    This ensures every downstream node (scene simulation, writer) sees the
+    foundational world premise, not just the director.
+
+    All user-authored text is brace-escaped so it can safely pass through
+    ``ChatPromptTemplate.format()`` and ``str.format()`` downstream.
+    """
+    if not db_path:
+        return world_context
+    try:
+        conn = await get_connection(db_path)
+        cursor = await conn.execute(
+            "SELECT what_is, where_from, where_to FROM world_propositions WHERE id = 1"
+        )
+        row = await cursor.fetchone()
+        await conn.close()
+        if row and any([row["what_is"], row["where_from"], row["where_to"]]):
+            parts: list[str] = ["## 世界核心设定"]
+            if row["what_is"]:
+                parts.append(f"【世界本质】{_esc_braces(row['what_is'][:600])}")
+            if row["where_from"]:
+                parts.append(f"【世界起源】{_esc_braces(row['where_from'][:600])}")
+            if row["where_to"]:
+                parts.append(f"【世界命运】{_esc_braces(row['where_to'][:600])}")
+            proposition_block = "\n".join(parts)
+            if world_context:
+                return f"{proposition_block}\n\n{world_context}"
+            return proposition_block
+    except Exception:
+        pass
+    return world_context
+
+
+async def _persist_scene_result(conn, chapter_idx: int, scene_idx: int, location: str, result) -> None:
+    """Persist scene turns and metadata to DB for timeline-based writer access."""
+    import json
+
+    # Save each turn
+    for turn in result.turns:
+        await conn.execute(
+            """INSERT INTO scene_turns
+               (chapter_index, scene_index, turn_index, character_id, turn_type,
+                content, target_id, is_visible, emotional_shift, location)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                chapter_idx, scene_idx, turn.turn_index, turn.character_id,
+                turn.turn_type.value if hasattr(turn.turn_type, 'value') else str(turn.turn_type),
+                turn.content, turn.target_id,
+                1 if turn.is_visible else 0,
+                json.dumps(turn.emotional_shift) if turn.emotional_shift else '{}',
+                location,
+            ),
+        )
+
+    # Save scene metadata
+    opening_json = '{}'
+    if result.opening_decisions:
+        opening_json = json.dumps({
+            cid: {
+                'assessment': d.current_assessment,
+                'desire': d.personal_desire,
+                'approach': d.chosen_approach,
+                'emotional_drive': d.emotional_drive,
+            }
+            for cid, d in result.opening_decisions.items()
+        }, ensure_ascii=False)
+
+    await conn.execute(
+        """INSERT INTO scene_metadata
+           (chapter_index, scene_index, location, total_turns, ended_by, opening_decisions_json)
+           VALUES (?, ?, ?, ?, ?, ?)
+           ON CONFLICT(chapter_index, scene_index) DO UPDATE SET
+               total_turns=excluded.total_turns, ended_by=excluded.ended_by,
+               opening_decisions_json=excluded.opening_decisions_json""",
+        (chapter_idx, scene_idx, location, len(result.turns), result.ended_by, opening_json),
+    )
+    await conn.commit()
+
+
+async def _load_chapter_timeline(conn, chapter_idx: int, char_name_map: dict[str, str]) -> str:
+    """Load all scene turns for a chapter from DB, formatted as a timeline for the writer.
+
+    Returns a structured text block with all scenes, turns, and opening decisions
+    that the writer can use for non-linear narrative construction.
+    """
+    import json
+
+    parts: list[str] = []
+
+    # Load scene metadata
+    cursor = await conn.execute(
+        "SELECT * FROM scene_metadata WHERE chapter_index = ? ORDER BY scene_index",
+        (chapter_idx,),
+    )
+    scenes = await cursor.fetchall()
+
+    # Load all turns for this chapter
+    cursor = await conn.execute(
+        "SELECT * FROM scene_turns WHERE chapter_index = ? ORDER BY scene_index, turn_index",
+        (chapter_idx,),
+    )
+    all_turns = await cursor.fetchall()
+
+    # Group turns by scene
+    turns_by_scene: dict[int, list] = {}
+    for turn in all_turns:
+        si = turn["scene_index"]
+        if si not in turns_by_scene:
+            turns_by_scene[si] = []
+        turns_by_scene[si].append(turn)
+
+    type_labels = {
+        'say': '说', 'do': '做', 'think': '想（内心）',
+        'feel': '情绪表露', 'leave': '离开',
+    }
+
+    for scene in scenes:
+        si = scene["scene_index"]
+        location = scene["location"]
+        parts.append(f"### 场景{si + 1} — {location}")
+
+        # Opening decisions
+        try:
+            decisions = json.loads(scene["opening_decisions_json"])
+            if decisions:
+                parts.append("**角色开场心态：**")
+                for cid, d in decisions.items():
+                    name = char_name_map.get(cid, cid)
+                    parts.append(f"- {name}: 判断「{d.get('assessment', '')}」→ 渴望「{d.get('desire', '')}」→ 策略「{d.get('approach', '')}」({d.get('emotional_drive', '')})")
+                parts.append("")
+        except Exception:
+            pass
+
+        # Turns
+        scene_turns = turns_by_scene.get(si, [])
+        if scene_turns:
+            parts.append("**行动实录：**")
+            for turn in scene_turns:
+                cid = turn["character_id"]
+                name = char_name_map.get(cid, cid)
+                tt = turn["turn_type"]
+                label = type_labels.get(tt, tt)
+                target = turn["target_id"]
+                target_str = f" → {char_name_map.get(target, target)}" if target else ""
+                visibility = "（内心）" if not turn["is_visible"] else ""
+                parts.append(f"  {turn['turn_index']+1}. [{name}] {label}{target_str}{visibility}: {turn['content']}")
+            parts.append("")
+
+        parts.append(f"_({scene['total_turns']}轮, {scene['ended_by']})_\n")
+
+    return "\n".join(parts)

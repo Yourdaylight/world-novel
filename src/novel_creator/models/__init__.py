@@ -12,6 +12,7 @@ from novel_creator.models.memory import (
 )
 from novel_creator.models.narrative import Chapter, NovelOutput, Scene
 from novel_creator.models.relationship import Relationship, RelationshipGraph
+from novel_creator.models.simulation_beat import SimulationBeat
 from novel_creator.models.story import ChapterOutline, SceneBeat, StoryOutline, Volume
 from novel_creator.models.world import (
     Faction,
@@ -45,6 +46,7 @@ __all__ = [
     "Scene",
     "SceneBeat",
     "SemanticMemory",
+    "SimulationBeat",
     "StoryOutline",
     "Volume",
     "WorldView",

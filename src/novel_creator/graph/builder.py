@@ -1,4 +1,8 @@
-"""Build the LangGraph orchestration graph."""
+"""Build the LangGraph orchestration graphs.
+
+V9: Adds preparation graph (one-shot) and simulation graph (continuous loop)
+alongside the legacy linear graph for backward compatibility.
+"""
 
 from __future__ import annotations
 
@@ -17,8 +21,26 @@ from novel_creator.graph.nodes import (
     world_building_node,
     write_chapter_node,
 )
-from novel_creator.graph.state import NovelGenerationState
+from novel_creator.graph.simulation_nodes import (
+    beat_plan_node,
+    god_checkpoint_node,
+    load_context_node,
+    persist_results_node,
+    pick_next_beats_node,
+    should_continue_simulation,
+    should_run_checkpoint,
+    simulate_beats_node,
+)
+from novel_creator.graph.state import (
+    NovelGenerationState,
+    PreparationState,
+    SimulationState,
+)
 
+
+# ======================================================================
+# Legacy linear graph (backward compatible)
+# ======================================================================
 
 def build_novel_graph() -> StateGraph:
     """
@@ -163,8 +185,94 @@ def build_resume_graph() -> StateGraph:
     return graph
 
 
+# ======================================================================
+# V9: Decoupled graphs
+# ======================================================================
+
+def build_preparation_graph() -> StateGraph:
+    """Build the one-shot preparation graph.
+
+    START → director → world_building → foreshadow_plan → beat_plan → END
+
+    All outputs are persisted to SQLite.  After this graph completes,
+    the simulation graph can be started independently.
+    """
+    graph = StateGraph(PreparationState)
+
+    graph.add_node("director", director_node)
+    graph.add_node("world_building", world_building_node)
+    graph.add_node("foreshadow_plan", foreshadow_plan_node)
+    graph.add_node("beat_plan", beat_plan_node)
+
+    graph.set_entry_point("director")
+    graph.add_edge("director", "world_building")
+    graph.add_edge("world_building", "foreshadow_plan")
+    graph.add_edge("foreshadow_plan", "beat_plan")
+    graph.add_edge("beat_plan", END)
+
+    return graph
+
+
+def build_simulation_graph() -> StateGraph:
+    """Build the continuous simulation loop graph.
+
+    START → load_context → pick_next_beats → ┐
+         ┌──────────────────────────────────┘
+         │     ┌── (no beats) ──→ END
+         │     └── (has beats) ──→ simulate_beats → persist_results
+         │                                              │
+         │         ┌── (checkpoint?) → god_checkpoint ──┤
+         │         └── (skip) ──────────────────────────┤
+         │                                              │
+         └───────────── pick_next_beats ←───────────────┘
+
+    The loop continues until all beats are completed or should_stop is set.
+    """
+    graph = StateGraph(SimulationState)
+
+    graph.add_node("load_context", load_context_node)
+    graph.add_node("pick_next_beats", pick_next_beats_node)
+    graph.add_node("simulate_beats", simulate_beats_node)
+    graph.add_node("persist_results", persist_results_node)
+    graph.add_node("god_checkpoint", god_checkpoint_node)
+
+    graph.set_entry_point("load_context")
+    graph.add_edge("load_context", "pick_next_beats")
+
+    # After picking: continue or done
+    graph.add_conditional_edges(
+        "pick_next_beats",
+        should_continue_simulation,
+        {
+            "continue": "simulate_beats",
+            "done": END,
+        },
+    )
+
+    graph.add_edge("simulate_beats", "persist_results")
+
+    # After persisting: checkpoint or pick more
+    graph.add_conditional_edges(
+        "persist_results",
+        should_run_checkpoint,
+        {
+            "checkpoint": "god_checkpoint",
+            "pick": "pick_next_beats",
+        },
+    )
+
+    # After checkpoint: pick more
+    graph.add_edge("god_checkpoint", "pick_next_beats")
+
+    return graph
+
+
+# ======================================================================
+# Compile helpers
+# ======================================================================
+
 def compile_novel_graph():
-    """Compile the graph into a runnable."""
+    """Compile the legacy linear graph into a runnable."""
     graph = build_novel_graph()
     return graph.compile()
 
@@ -172,4 +280,16 @@ def compile_novel_graph():
 def compile_resume_graph():
     """Compile the resume graph into a runnable."""
     graph = build_resume_graph()
+    return graph.compile()
+
+
+def compile_preparation_graph():
+    """Compile the preparation graph into a runnable."""
+    graph = build_preparation_graph()
+    return graph.compile()
+
+
+def compile_simulation_graph():
+    """Compile the simulation graph into a runnable."""
+    graph = build_simulation_graph()
     return graph.compile()

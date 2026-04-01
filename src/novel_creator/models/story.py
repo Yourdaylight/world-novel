@@ -29,13 +29,16 @@ class ChapterOutline(BaseModel):
     chapter_index: int = Field(description="章节序号 (0-based)")
     title: str = Field(description="章节标题")
     summary: str = Field(description="章节概要")
-    scenes: list[SceneBeat] = Field(default_factory=list, description="场景节拍列表")
+    scenes: list[SceneBeat] = Field(default_factory=list, description="场景节拍列表 (保留做向后兼容)")
     key_events: list[str] = Field(default_factory=list, description="关键事件")
     # V2: volume association
     volume_index: int = Field(default=0, description="所属卷序号 (0-based)")
     # V3: timeline association
     story_time: str = Field(default="", description="本章在故事世界中的时间标记")
     era_id: str = Field(default="", description="所属时代ID")
+    # V9: beat-based simulation — chapter maps to a range of SimulationBeats
+    beat_range_start: int | None = Field(default=None, description="起始 beat sequence (inclusive)")
+    beat_range_end: int | None = Field(default=None, description="结束 beat sequence (inclusive)")
 
 
 class Volume(BaseModel):

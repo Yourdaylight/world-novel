@@ -231,6 +231,7 @@ export interface CreateWorldRequest {
   num_volumes?: number
   theme?: string
   premise?: string
+  expected_word_count?: number  // 预期总字数（可选）
 }
 
 export interface CreateWorldResponse {
@@ -276,4 +277,24 @@ export interface SceneBeat {
   involved_characters: string[]
   foreshadows_to_plant: string[]
   foreshadows_to_payoff: string[]
+}
+
+// ---- V9: SimulationBeat ----
+export interface SimulationBeat {
+  beat_id: string
+  sequence: number
+  story_time: string
+  location: string
+  objective: string
+  status: string  // pending | simulating | completed
+  suggested_chapter: number | null
+  parallel_group: string | null
+}
+
+export interface SimulationProgress {
+  total: number
+  completed: number
+  simulating: number
+  pending: number
+  running: boolean
 }

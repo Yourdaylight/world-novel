@@ -1,6 +1,8 @@
 import { ref } from 'vue'
 import { useProgressStore } from '@/stores/progress'
 import { useLiveWritingStore } from '@/stores/liveWriting'
+import { useEventLogStore } from '@/stores/eventLog'
+import { useLiveMonitorStore } from '@/stores/liveMonitor'
 
 let ws: WebSocket | null = null
 const connected = ref(false)
@@ -65,14 +67,34 @@ export function useWebSocket() {
   function dispatch(event: any) {
     const progressStore = useProgressStore()
     const liveWritingStore = useLiveWritingStore()
+    const eventLogStore = useEventLogStore()
+    const monitorStore = useLiveMonitorStore()
 
     // Route events to appropriate stores
     if (event.type === 'progress' || event.type === 'progress_update') {
       progressStore.updateFromWS(event)
     }
 
+    // V9: Route simulation progress events
+    if (event.type === 'simulation_progress') {
+      progressStore.updateSimFromWS(event)
+      monitorStore.handleSimulationProgress(event)
+    }
+
+    // V9: Route decoupled pipeline events directly to monitor store
+    if (event.type === 'preparation_started') monitorStore.handlePreparationStarted()
+    if (event.type === 'preparation_finished') monitorStore.handlePreparationFinished(event)
+    if (event.type === 'simulation_started') monitorStore.handleSimulationStarted(event)
+    if (event.type === 'simulation_finished') monitorStore.handleSimulationFinished(event)
+    if (event.type === 'beat_simulated') monitorStore.handleBeatSimulated(event)
+    if (event.type === 'beat_plan_completed') monitorStore.handleBeatPlanCompleted(event)
+    if (event.type === 'beats_picked') monitorStore.currentPhase = 'simulating'
+
     // All events go to live writing for real-time display
     liveWritingStore.handleEvent(event)
+
+    // All events go to event log for the sidebar / overview log
+    eventLogStore.pushFromWS(event)
 
     // Route to component-level listeners
     const eventType = event.type as string
@@ -81,19 +103,6 @@ export function useWebSocket() {
         try { cb(event) } catch (e) { console.warn('[WS] Listener error:', e) }
       }
     }
-
-    // Generic event types that components can listen to
-    const routedEvents = [
-      'foreshadows_updated',
-      'relationships_updated',
-      'timeline_updated',
-      'token_update',
-      'chapter_completed',
-      'god_decision',
-      'scene_simulated',
-      'reflection_complete',
-    ]
-    // Already dispatched above via listeners dict
   }
 
   return { connected, connect, disconnect }
