@@ -69,6 +69,7 @@ async def run_director(
     num_characters: int = 3,
     *,
     num_volumes: int = 0,
+    total_chapters: int = 0,
 ) -> DirectorOutput:
     """Run the director agent and return the complete planning output."""
     chain = create_director_chain(num_volumes=num_volumes)

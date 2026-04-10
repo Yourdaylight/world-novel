@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import client from '@/api/client'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -15,6 +16,18 @@ const routes: RouteRecordRaw[] = [
     path: '/world/:novelId',
     component: () => import('@/layouts/DashboardLayout.vue'),
     redirect: (to) => `/world/${to.params.novelId}/overview`,
+    beforeEnter: async (to, _from, next) => {
+      try {
+        const { data } = await client.get('/novels')
+        const exists = (data.novels || []).some((n: any) => n.novel_id === to.params.novelId)
+        if (!exists) {
+          return next({ name: 'home' })
+        }
+      } catch {
+        // Allow navigation even if check fails
+      }
+      return next()
+    },
     children: [
       { path: 'overview', name: 'overview', component: () => import('@/components/overview/OverviewPage.vue') },
       { path: 'world-view', name: 'world-view', component: () => import('@/components/world/WorldPage.vue') },

@@ -51,8 +51,8 @@ def get_llm(
 
     return ChatOpenAI(
         model=model,
-        api_key=settings.openai_api_key,
-        base_url=settings.openai_base_url,
+        api_key=settings.resolved_api_key,
+        base_url=settings.resolved_base_url,
         temperature=temp,
     )
 

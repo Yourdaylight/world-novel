@@ -7,6 +7,11 @@ import { useLiveMonitorStore } from '@/stores/liveMonitor'
 let ws: WebSocket | null = null
 const connected = ref(false)
 
+// Exponential backoff for reconnection
+let _reconnectAttempts = 0
+const _BASE_RECONNECT_MS = 1000
+const _MAX_RECONNECT_MS = 30000
+
 // Event bus for component-level listeners
 type EventCallback = (data: any) => void
 const listeners: Record<string, EventCallback[]> = {}
@@ -33,6 +38,7 @@ export function useWebSocket() {
     ws = new WebSocket(url)
 
     ws.onopen = () => {
+      _reconnectAttempts = 0 // reset on successful connect
       connected.value = true
       console.log('[WS] Connected')
     }
@@ -49,8 +55,10 @@ export function useWebSocket() {
     ws.onclose = () => {
       connected.value = false
       ws = null
-      // Auto-reconnect after 3s
-      setTimeout(() => connect(), 3000)
+      // Exponential backoff reconnection
+      const delay = Math.min(_BASE_RECONNECT_MS * 2 ** _reconnectAttempts, _MAX_RECONNECT_MS)
+      _reconnectAttempts++
+      setTimeout(() => connect(), delay)
     }
 
     ws.onerror = () => {

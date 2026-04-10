@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { Character, RelationshipEdge, EmotionState } from '@/api/types'
-import { fetchStory, fetchRelationships } from '@/api/story'
+import type { Character, RelationshipEdge, EmotionState, GraphData } from '@/api/types'
+import { fetchStory, fetchRelationships, fetchGraphData } from '@/api/story'
 import client from '@/api/client'
 
 export const useCharacterStore = defineStore('characters', () => {
@@ -9,6 +9,10 @@ export const useCharacterStore = defineStore('characters', () => {
   const edges = ref<RelationshipEdge[]>([])
   const loading = ref(false)
   const emotionCache = ref<Record<string, EmotionState[]>>({})
+
+  // V10: Graph data from Neo4j
+  const graphData = ref<GraphData | null>(null)
+  const graphLoading = ref(false)
 
   async function loadCharacters() {
     loading.value = true
@@ -28,5 +32,20 @@ export const useCharacterStore = defineStore('characters', () => {
     return emotionCache.value[characterId]
   }
 
-  return { characters, edges, loading, emotionCache, loadCharacters, loadEmotions }
+  async function loadGraphData() {
+    graphLoading.value = true
+    try {
+      graphData.value = await fetchGraphData()
+    } catch {
+      graphData.value = null
+    } finally {
+      graphLoading.value = false
+    }
+  }
+
+  return {
+    characters, edges, loading, emotionCache,
+    graphData, graphLoading,
+    loadCharacters, loadEmotions, loadGraphData,
+  }
 })

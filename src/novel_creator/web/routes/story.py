@@ -378,3 +378,66 @@ async def get_relationship_history(
         }
     except Exception as e:
         return {"error": str(e), "history": []}
+
+
+# ======================================================================
+# V10: Graph (Neo4j) query endpoints
+# ======================================================================
+
+def _get_graph_store():
+    """Lazily create a GraphMemoryStore if Neo4j is enabled."""
+    from novel_creator.config import settings
+    if not settings.neo4j_enabled:
+        return None
+    try:
+        from novel_creator.memory.graph_store import GraphMemoryStore
+        return GraphMemoryStore()
+    except Exception:
+        return None
+
+
+@router.get("/graph/relationships")
+async def get_graph_data(novel_id: str | None = Query(None)):
+    """Get full graph data (nodes + edges) from Neo4j for visualization."""
+    gs = _get_graph_store()
+    if gs is None:
+        return {"nodes": [], "edges": [], "source": "neo4j_disabled"}
+    try:
+        data = await gs.get_full_graph()
+        await gs.close()
+        return {**data, "source": "neo4j"}
+    except Exception as e:
+        return {"error": str(e), "nodes": [], "edges": []}
+
+
+@router.get("/graph/path")
+async def get_graph_path(
+    from_id: str = Query(..., alias="from"),
+    to_id: str = Query(..., alias="to"),
+    max_depth: int = Query(3),
+    novel_id: str | None = Query(None),
+):
+    """Find shortest path between two characters in the graph."""
+    gs = _get_graph_store()
+    if gs is None:
+        return {"paths": [], "error": "Neo4j not enabled"}
+    try:
+        paths = await gs.find_path(from_id, to_id, max_depth=max_depth)
+        await gs.close()
+        return {"paths": paths}
+    except Exception as e:
+        return {"error": str(e), "paths": []}
+
+
+@router.get("/graph/social-context/{character_id}")
+async def get_social_context(character_id: str, novel_id: str | None = Query(None)):
+    """Get a character's social context summary from the graph."""
+    gs = _get_graph_store()
+    if gs is None:
+        return {"context": "", "source": "neo4j_disabled"}
+    try:
+        context = await gs.get_social_context(character_id)
+        await gs.close()
+        return {"context": context, "source": "neo4j"}
+    except Exception as e:
+        return {"error": str(e), "context": ""}

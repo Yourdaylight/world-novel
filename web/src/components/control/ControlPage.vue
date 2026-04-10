@@ -11,10 +11,7 @@
 
             <el-form label-position="left" class="run-form">
               <el-form-item label="运行模式">
-                <el-radio-group v-model="runMode">
-                  <el-radio value="full">全自动</el-radio>
-                  <el-radio value="chapter_by_chapter">逐章暂停</el-radio>
-                </el-radio-group>
+                <el-tag type="info" size="small">解耦模式</el-tag>
               </el-form-item>
             </el-form>
 
@@ -80,7 +77,7 @@ import { startGeneration } from '@/api/novels'
 const route = useRoute()
 const progressStore = useProgressStore()
 
-const runMode = ref('full')
+const runMode = ref('decoupled')
 const starting = ref(false)
 
 const statusText = computed(() => {

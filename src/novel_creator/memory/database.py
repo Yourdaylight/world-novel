@@ -370,6 +370,44 @@ CREATE INDEX IF NOT EXISTS idx_sim_beats_status ON simulation_beats(status);
 CREATE INDEX IF NOT EXISTS idx_sim_beats_sequence ON simulation_beats(sequence);
 CREATE INDEX IF NOT EXISTS idx_sim_beats_chapter ON simulation_beats(suggested_chapter);
 CREATE INDEX IF NOT EXISTS idx_sim_beats_parallel ON simulation_beats(parallel_group);
+
+-- V10: Era summaries (Cold-zone memory consolidation)
+CREATE TABLE IF NOT EXISTS era_summaries (
+    summary_id TEXT PRIMARY KEY,
+    character_id TEXT NOT NULL,
+    era_id TEXT DEFAULT '',
+    chapter_start INTEGER NOT NULL,
+    chapter_end INTEGER NOT NULL,
+    summary TEXT NOT NULL,
+    source_memory_ids TEXT DEFAULT '[]',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- V10: Inner agenda — per-character cross-scene psychological undercurrents
+CREATE TABLE IF NOT EXISTS character_inner_agenda (
+    character_id TEXT PRIMARY KEY,
+    agenda TEXT DEFAULT '',
+    vigilance TEXT DEFAULT '',
+    chapter_updated INTEGER DEFAULT 0,
+    scene_updated INTEGER DEFAULT 0
+);
+
+-- V10: World knowledge — personalized world cognition per character
+CREATE TABLE IF NOT EXISTS character_world_knowledge (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    character_id TEXT NOT NULL,
+    knowledge_type TEXT NOT NULL,
+    knowledge_key TEXT NOT NULL,
+    content TEXT NOT NULL,
+    source TEXT DEFAULT 'scene',
+    confidence REAL DEFAULT 0.5,
+    chapter_learned INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(character_id, knowledge_type, knowledge_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_era_summaries_char ON era_summaries(character_id);
+CREATE INDEX IF NOT EXISTS idx_world_knowledge_char ON character_world_knowledge(character_id);
 """
 
 
@@ -418,6 +456,21 @@ async def get_connection(db_path: str | None = None) -> aiosqlite.Connection:
     for table in ("scene_turns", "character_actions", "scene_metadata"):
         try:
             await conn.execute(f"ALTER TABLE {table} ADD COLUMN beat_id TEXT DEFAULT ''")
+            await conn.commit()
+        except Exception:
+            pass  # Column already exists
+
+    # V10: Memory heat system — add heat fields to episodic_memories
+    for col, default in (
+        ("heat_score REAL", "0.5"),
+        ("last_accessed_chapter INTEGER", "0"),
+        ("access_count INTEGER", "0"),
+        ("consolidated INTEGER", "0"),
+    ):
+        try:
+            await conn.execute(
+                f"ALTER TABLE episodic_memories ADD COLUMN {col} DEFAULT {default}"
+            )
             await conn.commit()
         except Exception:
             pass  # Column already exists

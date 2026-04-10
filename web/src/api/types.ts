@@ -34,14 +34,44 @@ export interface RelationshipEdge {
 }
 
 // ---- World ----
+export interface PowerSystem {
+  name?: string
+  description?: string
+  levels?: string[]
+  rules?: string[]
+}
+
+export interface Faction {
+  id?: string
+  name: string
+  description?: string
+  leader?: string
+  members?: string[]
+}
+
+export interface Location {
+  id?: string
+  name: string
+  description?: string
+  region?: string
+}
+
+export interface HistoryEvent {
+  era_id?: string
+  event_type?: string
+  title: string
+  description: string
+  story_time?: string
+}
+
 export interface WorldData {
   name?: string
   era?: string
-  power_system?: any
-  factions?: any[]
-  locations?: any[]
-  history_events?: any[]
-  [key: string]: any
+  power_system?: PowerSystem
+  factions?: Faction[]
+  locations?: Location[]
+  history_events?: HistoryEvent[]
+  [key: string]: unknown
 }
 
 // ---- Outline / Volumes ----
@@ -55,12 +85,22 @@ export interface Volume {
   arc_goal: string
 }
 
+export interface OutlineChapter {
+  chapter_index: number
+  title: string
+  summary: string
+  beat_range_start?: number | null
+  beat_range_end?: number | null
+  scenes?: SceneBeat[]
+}
+
 export interface OutlineData {
   title?: string
   genre?: string
   themes?: string[]
   synopsis?: string
-  [key: string]: any
+  chapters?: OutlineChapter[]
+  [key: string]: unknown
 }
 
 // ---- Chapters ----
@@ -124,7 +164,7 @@ export interface PlotThread {
   start_chapter: number
   key_characters: string[]
   foreshadow_ids: string[]
-  chapter_progress: Record<string, any>
+  chapter_progress: Record<string, unknown>
 }
 
 // ---- Timeline ----
@@ -297,4 +337,73 @@ export interface SimulationProgress {
   simulating: number
   pending: number
   running: boolean
+}
+
+// ---- V10: Memory Heat System ----
+export interface MemoryHeatItem {
+  memory_id: string
+  chapter_index: number
+  scene_index: number
+  content: string
+  importance: number
+  emotional_valence: number
+  involved_characters: string[]
+  heat_score: number
+  access_count: number
+  consolidated: boolean
+}
+
+export interface MemoryHeatStats {
+  hot_count: number
+  warm_count: number
+  cold_count: number
+  frozen_count: number
+  total_active: number
+}
+
+export interface MemoryHeatDistribution {
+  partition: {
+    hot: MemoryHeatItem[]
+    warm: MemoryHeatItem[]
+    cold: MemoryHeatItem[]
+    frozen: MemoryHeatItem[]
+  }
+  stats: MemoryHeatStats
+}
+
+export interface EraSummary {
+  summary_id: string
+  era_id: string
+  chapter_start: number
+  chapter_end: number
+  summary: string
+  source_memory_count: number
+  created_at: string
+}
+
+// ---- V10: Knowledge Graph (Neo4j) ----
+export interface GraphNode {
+  id: string
+  label: string
+  type: 'character' | 'location' | 'faction' | 'event'
+  properties: Record<string, any>
+}
+
+export interface GraphEdge {
+  from: string
+  to: string
+  label: string
+  type: string
+  properties: Record<string, any>
+}
+
+export interface GraphData {
+  nodes: GraphNode[]
+  edges: GraphEdge[]
+}
+
+export interface GraphPath {
+  nodes: GraphNode[]
+  edges: GraphEdge[]
+  length: number
 }

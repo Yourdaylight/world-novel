@@ -181,7 +181,7 @@ async def api_world_status(novel_id: str):
                 "completed": row["completed_chapters"],
                 "total": row["total_chapters"],
                 "phase": row["phase"],
-                "paused": row["phase"] not in ("done",),
+                "paused": row["phase"] == "paused",
             }
         # Count actual chapters in DB as ground truth
         cursor2 = await conn.execute(

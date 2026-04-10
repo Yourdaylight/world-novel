@@ -4,17 +4,71 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
+import traceback
 from pathlib import Path
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.cors import CORSMiddleware
 
+from novel_creator.log import get_logger
 from novel_creator.web.events import get_event_queue
 from novel_creator.web.routes import router
 
-app = FastAPI(title="Novel Creator Dashboard", version="0.4.0")
+logger = get_logger("novel_creator.web")
+
+app = FastAPI(title="WorldNovel Dashboard", version="0.5.0")
+
+# CORS — allow local dev (Vite dev server)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(router, prefix="/api")
+
+
+# ── Health endpoint ──────────────────────────────────────
+@app.get("/api/health")
+async def health():
+    """Quick health check for smoke tests and monitoring."""
+    return {"status": "ok", "version": "0.5.0"}
+
+
+# ── Request logging middleware ───────────────────────────
+@app.middleware("http")
+async def request_logging_middleware(request: Request, call_next):
+    """Log every request with method, path, status, duration. Catch unhandled exceptions."""
+    start = time.perf_counter()
+    path = request.url.path
+    method = request.method
+
+    # Skip noisy polling endpoints from logs
+    skip_log = path.endswith("/status") and method == "GET"
+
+    try:
+        response = await call_next(request)
+        duration_ms = (time.perf_counter() - start) * 1000
+        if not skip_log:
+            logger.info(
+                "%s %s → %d (%.0fms)",
+                method, path, response.status_code, duration_ms,
+            )
+        return response
+    except Exception as exc:
+        duration_ms = (time.perf_counter() - start) * 1000
+        logger.error(
+            "%s %s → 500 UNHANDLED (%.0fms): %s\n%s",
+            method, path, duration_ms, exc, traceback.format_exc(),
+        )
+        return JSONResponse(
+            {"detail": f"Internal Server Error: {exc}"},
+            status_code=500,
+        )
 
 # Legacy static dir (kept for backward compatibility)
 STATIC_DIR = Path(__file__).parent / "static"

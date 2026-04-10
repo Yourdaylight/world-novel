@@ -1,22 +1,27 @@
 <template>
   <div class="create-wizard">
     <header class="wizard-header">
-      <el-button text @click="router.push('/')">← 返回首页</el-button>
-      <h1>🌍 创建新世界</h1>
+      <button class="back-btn" @click="router.push('/')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+        返回首页
+      </button>
+      <h1 class="wizard-title">创建新世界</h1>
     </header>
 
-    <el-steps :active="currentStep" finish-status="success" align-center class="wizard-steps">
-      <el-step title="世界本质" description="这个世界是什么" />
-      <el-step title="世界起源" description="从何而来" />
-      <el-step title="世界命运" description="往何处去" />
-      <el-step title="基础参数" description="设定细节" />
-    </el-steps>
+    <div class="wizard-steps-wrap">
+      <el-steps :active="currentStep" finish-status="success" align-center>
+        <el-step title="世界本质" description="这个世界是什么" />
+        <el-step title="世界起源" description="从何而来" />
+        <el-step title="世界命运" description="往何处去" />
+        <el-step title="基础参数" description="设定细节" />
+      </el-steps>
+    </div>
 
     <div class="wizard-body">
       <!-- Step 1-3: Propositions -->
       <template v-if="currentStep < 3">
-        <el-row :gutter="24">
-          <el-col :span="14">
+        <div class="proposition-layout">
+          <div class="prop-main">
             <StepProposition
               :step="currentStep + 1"
               :title="stepTitles[currentStep]"
@@ -24,49 +29,57 @@
               :examples="stepExamples[currentStep]"
               v-model="propositions[stepKeys[currentStep]]"
             />
-          </el-col>
-          <el-col :span="10">
+          </div>
+          <div class="prop-aside">
             <AiFeedback
               :step="currentStep + 1"
               :text="propositions[stepKeys[currentStep]]"
               :context="currentContext"
             />
-          </el-col>
-        </el-row>
+          </div>
+        </div>
       </template>
 
       <!-- Step 4: Parameters -->
       <template v-else>
-        <StepParams
-          v-model:title="form.title"
-          v-model:genre="form.genre"
-          v-model:num-chapters="form.numChapters"
-          v-model:num-characters="form.numCharacters"
-          :loading="creating"
-        />
+        <div class="params-panel">
+          <StepParams
+            v-model:title="form.title"
+            v-model:genre="form.genre"
+            v-model:num-chapters="form.numChapters"
+            v-model:num-characters="form.numCharacters"
+            :loading="creating"
+          />
+        </div>
       </template>
     </div>
 
     <div class="wizard-footer">
-      <el-button v-if="currentStep > 0" @click="currentStep--">上一步</el-button>
-      <el-button
+      <button
+        v-if="currentStep > 0"
+        class="footer-btn footer-btn-outline"
+        @click="currentStep--"
+      >
+        上一步
+      </button>
+      <button
         v-if="currentStep < 3"
-        type="primary"
+        class="footer-btn footer-btn-primary"
         :disabled="!canProceed"
         @click="currentStep++"
       >
         下一步
-      </el-button>
-      <el-button
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+      <button
         v-if="currentStep === 3"
-        type="primary"
-        size="large"
-        :loading="creating"
-        :disabled="!form.title"
+        class="footer-btn footer-btn-create"
+        :disabled="!form.title || creating"
         @click="onCreateWorld"
       >
-        🌟 开始创世
-      </el-button>
+        <svg v-if="creating" class="spin-icon" width="15" height="15" viewBox="0 0 50 50"><circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="4" stroke-dasharray="80, 200" stroke-linecap="round"/></svg>
+        <template v-else>开始创世</template>
+      </button>
     </div>
   </div>
 </template>
@@ -171,39 +184,183 @@ async function onCreateWorld() {
 <style scoped lang="scss">
 .create-wizard {
   min-height: 100vh;
-  background: var(--bg-primary, #0f0f23);
-  padding: 2rem;
-  max-width: 1200px;
+  background: var(--bg-gradient);
+  padding: var(--sp-xl);
+  max-width: 1000px;
   margin: 0 auto;
-}
+  position: relative;
 
-.wizard-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 2rem;
-
-  h1 {
-    font-size: 1.5rem;
-    color: var(--text-primary, #e0e0ff);
-    margin: 0;
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--bg-noise);
+    pointer-events: none;
+    opacity: 0.4;
   }
 }
 
-.wizard-steps {
-  margin-bottom: 2rem;
+/* === Header === */
+.wizard-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-md);
+  margin-bottom: var(--sp-lg);
+  padding-bottom: var(--sp-md);
+  border-bottom: 1px solid var(--border-default);
+  position: relative;
+  z-index: 1;
 }
 
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  transition: all var(--duration-base) ease;
+
+  &:hover {
+    color: var(--text-primary);
+    background: var(--bg-elevated);
+  }
+}
+
+.wizard-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  font-weight: 400;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+/* === Steps === */
+.wizard-steps-wrap {
+  position: relative;
+  z-index: 1;
+  margin-bottom: var(--sp-xl);
+
+  .el-steps {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+}
+
+/* === Body === */
 .wizard-body {
-  min-height: 400px;
-  margin-bottom: 2rem;
+  position: relative;
+  z-index: 1;
+  min-height: 420px;
+  margin-bottom: var(--sp-xl);
 }
 
+.proposition-layout {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: var(--sp-xl);
+  align-items: start;
+}
+
+.prop-main {
+  min-width: 0;
+}
+
+.prop-aside {
+  position: sticky;
+  top: calc(var(--sp-xl) + 16px);
+}
+
+.params-panel {
+  max-width: 640px;
+  margin: 0 auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  padding: var(--sp-xl);
+  box-shadow: var(--shadow-md);
+}
+
+/* === Footer === */
 .wizard-footer {
   display: flex;
   justify-content: center;
-  gap: 1rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border, #2a2a4a);
+  gap: var(--sp-sm);
+  padding-top: var(--sp-xl);
+  border-top: 1px solid var(--border-default);
+  position: relative;
+  z-index: 1;
+}
+
+.footer-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 11px 28px;
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: all var(--duration-base) ease;
+  letter-spacing: 0.01em;
+
+  &.footer-btn-primary {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    color: #fff;
+    border: none;
+    box-shadow: 0 2px 10px rgba(217,119,6,0.28);
+
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(217,119,6,0.38);
+    }
+  }
+
+  &.footer-btn-create {
+    background: linear-gradient(135deg, #d97706, #b45309, #92400e);
+    color: #fff;
+    border: none;
+    padding: 12px 40px;
+    font-size: var(--fs-base);
+    box-shadow: 0 3px 14px rgba(217,119,6,0.32);
+
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 26px rgba(217,119,6,0.42);
+    }
+  }
+
+  &.footer-btn-outline {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-default);
+
+    &:hover {
+      color: var(--text-primary);
+      border-color: var(--text-muted);
+      background: var(--bg-elevated);
+    }
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>

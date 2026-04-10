@@ -83,8 +83,8 @@ async def api_analyze_proposition(req: AnalyzePropositionRequest):
 
         llm = ChatOpenAI(
             model=settings.director_model,
-            api_key=settings.openai_api_key,
-            base_url=settings.openai_base_url,
+            api_key=settings.resolved_api_key,
+            base_url=settings.resolved_base_url,
             temperature=0.7,
         )
         resp = await llm.ainvoke([
@@ -215,8 +215,8 @@ async def api_historian_chat(req: HistorianChatRequest):
         from langchain_openai import ChatOpenAI
         llm = ChatOpenAI(
             model=settings.director_model,
-            api_key=settings.openai_api_key,
-            base_url=settings.openai_base_url,
+            api_key=settings.resolved_api_key,
+            base_url=settings.resolved_base_url,
             temperature=0.7,
         )
         resp = await llm.ainvoke(messages)

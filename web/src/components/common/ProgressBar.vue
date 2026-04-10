@@ -1,9 +1,12 @@
 <template>
   <div class="progress-bar-container" v-if="progressStore.total > 0">
     <div class="progress-bar">
-      <div class="progress-bar-fill" :style="{ width: progressStore.percent + '%' }"></div>
+      <div
+        class="progress-bar-fill"
+        :style="{ width: progressStore.percent + '%' }"
+      ></div>
     </div>
-    <span class="progress-text">{{ progressStore.completed }}/{{ progressStore.total }} 章</span>
+    <span class="progress-text font-data">{{ progressStore.completed }}/{{ progressStore.total }} 章</span>
   </div>
 </template>
 
@@ -17,26 +20,26 @@ const progressStore = useProgressStore()
 .progress-bar-container {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--sp-sm);
 }
 
 .progress-bar {
   width: 200px;
-  height: 8px;
+  height: 5px;
   background: var(--bg-elevated);
-  border-radius: 4px;
+  border-radius: 3px;
   overflow: hidden;
 }
 
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan));
-  border-radius: 4px;
-  transition: width 0.5s ease;
+  background: linear-gradient(90deg, #d97706, #f59e0b);
+  border-radius: 3px;
+  transition: width 0.6s var(--ease-out-expo);
 }
 
 .progress-text {
-  font-size: 0.85rem;
+  font-size: var(--fs-xs);
   color: var(--text-muted);
   white-space: nowrap;
 }

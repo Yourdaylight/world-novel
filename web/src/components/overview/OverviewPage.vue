@@ -1,31 +1,33 @@
 <template>
   <div class="overview-page" v-loading="loading">
-    <!-- Hero CTA — most prominent element -->
+    <!-- Hero CTA -->
     <HeroCTA :is-running="isRunning" :error-message="generationError" :novel-status="worldStatus.status" />
 
     <!-- Generation Error Alert -->
-    <div class="generation-error-alert" v-if="generationError">
+    <div class="generation-error-alert animate-fade-up" v-if="generationError">
       <div class="error-alert-inner">
         <div class="error-alert-header">
-          <span class="error-icon">✕</span>
+          <div class="error-icon-wrap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          </div>
           <span class="error-title">生成失败</span>
-          <el-button text size="small" @click="generationError = ''">关闭</el-button>
+          <button class="error-close-btn" @click="generationError = ''">关闭</button>
         </div>
         <p class="error-detail">{{ generationError }}</p>
       </div>
     </div>
 
-    <!-- Dashboard Grid: Info + Stats + Propositions -->
+    <!-- Dashboard Grid -->
     <div class="dashboard-grid">
-      <div class="grid-card">
+      <div class="grid-card animate-fade-up">
         <NovelInfoCard />
       </div>
 
-      <div class="grid-card">
+      <div class="grid-card animate-fade-up" style="animation-delay: 60ms;">
         <WorldStats />
       </div>
 
-      <div class="grid-card propositions-card" v-if="hasPropositions">
+      <div class="grid-card propositions-card animate-fade-up" v-if="hasPropositions" style="animation-delay: 120ms;">
         <span class="card-title">终极命题</span>
         <div class="propositions-compact">
           <div class="prop-inline" v-if="propositions.what_is">
@@ -95,9 +97,7 @@ const hasPropositions = computed(() =>
   propositions.what_is || propositions.where_from || propositions.where_to
 )
 
-const isRunning = computed(() =>
-  progressStore.phase !== 'idle' && progressStore.phase !== 'done' && progressStore.phase !== 'error' && !progressStore.paused
-)
+const isRunning = computed(() => progressStore.isRunning)
 
 // ---- Polling ----
 let pollTimer: ReturnType<typeof setInterval> | null = null
@@ -196,12 +196,13 @@ async function loadPropositions(novelId: string) {
   min-height: 400px;
 }
 
+/* === Error Alert — refined === */
 .generation-error-alert {
   margin-bottom: var(--sp-lg);
 
   .error-alert-inner {
-    background: rgba(var(--accent-cinnabar-rgb, 220, 80, 60), 0.08);
-    border: 1px solid var(--accent-cinnabar);
+    background: linear-gradient(135deg, rgba(220,38,38,0.06), rgba(220,38,38,0.03));
+    border: 1px solid rgba(220,38,38,0.25);
     border-radius: var(--radius-lg);
     padding: var(--sp-md) var(--sp-lg);
   }
@@ -213,17 +214,30 @@ async function loadPropositions(novelId: string) {
     margin-bottom: var(--sp-xs);
   }
 
-  .error-icon {
+  .error-icon-wrap {
     color: var(--accent-cinnabar);
-    font-weight: 700;
-    font-size: var(--fs-md);
+    display: flex;
   }
 
   .error-title {
     font-family: var(--font-ui);
     font-weight: 600;
+    font-size: var(--fs-sm);
     color: var(--accent-cinnabar);
     flex: 1;
+  }
+
+  .error-close-btn {
+    background: none;
+    border: none;
+    font-family: var(--font-ui);
+    font-size: var(--fs-xs);
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+
+    &:hover { color: var(--text-primary); }
   }
 
   .error-detail {
@@ -232,10 +246,11 @@ async function loadPropositions(novelId: string) {
     color: var(--text-primary);
     margin: 0;
     word-break: break-all;
-    line-height: 1.6;
+    line-height: 1.65;
   }
 }
 
+/* === Grid === */
 .dashboard-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -249,6 +264,13 @@ async function loadPropositions(novelId: string) {
   border-radius: var(--radius-lg);
   padding: var(--sp-md);
   min-width: 0;
+  transition: box-shadow var(--duration-base) ease,
+              border-color var(--duration-base) ease;
+
+  &:hover {
+    box-shadow: var(--shadow-md);
+    border-color: rgba(217,119,6,0.15);
+  }
 }
 
 .card-title {
@@ -277,20 +299,20 @@ async function loadPropositions(novelId: string) {
 .prop-badge {
   font-family: var(--font-ui);
   font-size: 10px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 3px;
+  font-weight: 650;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
   white-space: nowrap;
   flex-shrink: 0;
   margin-top: 2px;
 
   &.aurora {
-    color: var(--accent-aurora);
-    background: rgba(166, 127, 212, 0.12);
+    color: #7c3aed;
+    background: rgba(124, 58, 237, 0.09);
   }
   &.jade {
-    color: var(--accent-jade);
-    background: rgba(78, 201, 148, 0.1);
+    color: #059669;
+    background: rgba(5, 150, 105, 0.08);
   }
   &.ember {
     color: var(--accent-ember);
@@ -302,7 +324,7 @@ async function loadPropositions(novelId: string) {
   font-family: var(--font-ui);
   font-size: var(--fs-sm);
   color: var(--text-primary);
-  line-height: 1.5;
+  line-height: 1.55;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;

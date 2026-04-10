@@ -1,20 +1,21 @@
 <template>
-  <PanelCard title="世界统计" icon="📊">
+  <div class="stats-wrap">
+    <span class="card-title">世界统计</span>
     <div class="stats-grid">
       <div class="stat-item">
-        <span class="stat-value">{{ godDecisionCount }}</span>
+        <span class="stat-value font-data">{{ godDecisionCount }}</span>
         <span class="stat-label">命运决策</span>
       </div>
       <div class="stat-item">
-        <span class="stat-value">{{ eventCount }}</span>
+        <span class="stat-value font-data">{{ eventCount }}</span>
         <span class="stat-label">世界事件</span>
       </div>
       <div class="stat-item">
-        <span class="stat-value">{{ wordCount }}</span>
+        <span class="stat-value font-data">{{ wordCount }}</span>
         <span class="stat-label">总字数</span>
       </div>
       <div class="stat-item">
-        <span class="stat-value">{{ plotThreadCount }}</span>
+        <span class="stat-value font-data">{{ plotThreadCount }}</span>
         <span class="stat-label">活跃剧情线</span>
       </div>
     </div>
@@ -22,7 +23,7 @@
     <!-- Token Consumption -->
     <div class="token-section" v-if="tokenTotal > 0">
       <div class="token-header">
-        <span class="section-label" style="margin-bottom: 0;">🪙 Token 消耗</span>
+        <span class="section-label" style="margin-bottom: 0;">Token 消耗</span>
         <span class="token-total font-data">{{ formatTokens(tokenTotal) }}</span>
       </div>
       <div class="token-breakdown" v-if="tokenByRole.length">
@@ -38,12 +39,11 @@
         </div>
       </div>
     </div>
-  </PanelCard>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import PanelCard from '@/components/common/PanelCard.vue'
 import { onWSEvent } from '@/composables/useWebSocket'
 import client from '@/api/client'
 
@@ -110,6 +110,19 @@ onUnmounted(() => unsub())
 </script>
 
 <style scoped lang="scss">
+.stats-wrap { /* container */ }
+
+.card-title {
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: var(--sp-sm);
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -119,13 +132,13 @@ onUnmounted(() => unsub())
 .stat-item {
   text-align: left;
   padding: var(--sp-sm) 0;
-  border-bottom: 1px solid var(--border-ghost);
+  border-bottom: 1px solid var(--border-muted);
 
   .stat-value {
     display: block;
     font-family: var(--font-data);
     font-size: var(--fs-xl);
-    font-weight: 600;
+    font-weight: 650;
     color: var(--accent-ember);
     line-height: 1.2;
     font-variant-numeric: tabular-nums;
@@ -135,7 +148,7 @@ onUnmounted(() => unsub())
     font-family: var(--font-ui);
     font-size: var(--fs-xs);
     color: var(--text-muted);
-    margin-top: var(--sp-xs);
+    margin-top: 3px;
     display: block;
   }
 }
@@ -143,7 +156,7 @@ onUnmounted(() => unsub())
 .token-section {
   margin-top: var(--sp-lg);
   padding-top: var(--sp-md);
-  border-top: 1px solid var(--border-rule);
+  border-top: 1px solid var(--border-default);
 }
 
 .token-header {
@@ -154,7 +167,7 @@ onUnmounted(() => unsub())
 
   .token-total {
     font-size: var(--fs-md);
-    font-weight: 600;
+    font-weight: 650;
     color: var(--accent-ember);
   }
 }
@@ -171,6 +184,7 @@ onUnmounted(() => unsub())
   gap: var(--sp-sm);
 
   .role-name {
+    font-family: var(--font-ui);
     font-size: var(--fs-xs);
     color: var(--text-secondary);
     min-width: 36px;
@@ -178,7 +192,7 @@ onUnmounted(() => unsub())
 
   .role-bar-wrapper {
     flex: 1;
-    height: 6px;
+    height: 5px;
     background: var(--bg-elevated);
     border-radius: 3px;
     overflow: hidden;
@@ -186,10 +200,10 @@ onUnmounted(() => unsub())
 
   .role-bar {
     height: 100%;
-    background: var(--accent-ember);
+    background: linear-gradient(90deg, #d97706, #f59e0b);
     border-radius: 3px;
     min-width: 2px;
-    transition: width 0.3s ease;
+    transition: width 0.4s var(--ease-out-expo);
   }
 
   .role-tokens {

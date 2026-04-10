@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================
-#  novel-creator 一键本地启动脚本
+#  WorldNovel 一键本地启动脚本
 #  用法: ./scripts/start-local.sh [--prod] [--port 8000]
 # ============================================================
 set -euo pipefail
@@ -136,7 +136,7 @@ if [ "$MODE" = "prod" ]; then
   info "启动服务: http://0.0.0.0:${BACKEND_PORT}"
   echo ""
   echo -e "${GREEN}╔══════════════════════════════════════════════════╗${NC}"
-  echo -e "${GREEN}║  🌍 WorldEngine 已启动 (生产模式)                 ║${NC}"
+  echo -e "${GREEN}║  🌍 WorldNovel 已启动 (生产模式)                   ║${NC}"
   echo -e "${GREEN}║                                                  ║${NC}"
   echo -e "${GREEN}║  地址: http://localhost:${BACKEND_PORT}                    ║${NC}"
   echo -e "${GREEN}║  API:  http://localhost:${BACKEND_PORT}/docs                ║${NC}"
@@ -146,9 +146,9 @@ if [ "$MODE" = "prod" ]; then
   echo ""
 
   if [ "$PY_TOOL" = "uv" ]; then
-    uv run novel-creator web --host 0.0.0.0 --port "$BACKEND_PORT"
+    uv run worldnovel web --host 0.0.0.0 --port "$BACKEND_PORT"
   else
-    .venv/bin/novel-creator web --host 0.0.0.0 --port "$BACKEND_PORT"
+    .venv/bin/worldnovel web --host 0.0.0.0 --port "$BACKEND_PORT"
   fi
 
 else
@@ -179,7 +179,7 @@ else
 
   echo ""
   echo -e "${GREEN}╔══════════════════════════════════════════════════╗${NC}"
-  echo -e "${GREEN}║  🌍 WorldEngine 已启动 (开发模式)                 ║${NC}"
+  echo -e "${GREEN}║  🌍 WorldNovel 已启动 (开发模式)                   ║${NC}"
   echo -e "${GREEN}║                                                  ║${NC}"
   echo -e "${GREEN}║  前端: http://localhost:${FRONTEND_PORT}                   ║${NC}"
   echo -e "${GREEN}║  后端: http://localhost:${BACKEND_PORT}                    ║${NC}"

@@ -23,29 +23,41 @@ class WriterAgent:
         chapter_index: int,
         scene_index: int,
         location: str,
-        scene_objective: str,
-        character_actions: list[CharacterAction],
-        character_profiles: dict[str, str],  # id -> brief description
+        character_actions: list[CharacterAction] | None = None,
+        character_profiles: dict[str, str] | None = None,
         previous_context: str = "",
         *,
+        scene_objective: str = "",
         world_context: str = "",
         location_description: str = "",
         foreshadow_instructions: str = "",
         god_context: str = "",
+        director_intent: str = "",
+        scene_transcript=None,
+        word_count_target: int = 1500,
+        chapter_timeline: str = "",
     ) -> Scene:
-        """Write a literary scene based on character actions.
+        """Write a literary scene based on character actions / timeline.
 
         Parameters
         ----------
-        world_context : str, optional
-            World-view summary to ground the narrative.
-        location_description : str, optional
-            Detailed description of the current location.
-        foreshadow_instructions : str, optional
-            Instructions for planting / paying off foreshadows in this scene.
-        god_context : str, optional
-            V3: Fate/God Agent guidance for this chapter.
+        scene_objective : str
+            What the scene should achieve (legacy parameter).
+        director_intent : str
+            V5+ director's intent for the scene (overrides scene_objective).
+        scene_transcript : SceneResult, optional
+            V5+ full scene simulation transcript (turns, opening decisions).
+        word_count_target : int
+            Target word count for this scene.
+        chapter_timeline : str
+            V9+ full chapter timeline text for decoupled writing.
         """
+        character_actions = character_actions or []
+        character_profiles = character_profiles or {}
+
+        # Prefer director_intent over scene_objective
+        objective = director_intent or scene_objective or "推进剧情"
+
         # Build actions description
         actions_text = self._format_actions(character_actions)
         profiles_text = "\n".join(f"- {cid}: {desc}" for cid, desc in character_profiles.items())
@@ -61,6 +73,34 @@ class WriterAgent:
         if god_context:
             extra_blocks += f"## 命运之手\n以下是命运的安排，请自然融入叙事中:\n{god_context}\n\n"
 
+        # V5: Scene transcript block (rich simulation data)
+        transcript_block = ""
+        if scene_transcript:
+            try:
+                parts = []
+                if scene_transcript.opening_decisions:
+                    parts.append("**角色开场心态：**")
+                    for cid, d in scene_transcript.opening_decisions.items():
+                        parts.append(f"- {cid}: 判断「{d.current_assessment}」→ 渴望「{d.personal_desire}」→ 策略「{d.chosen_approach}」({d.emotional_drive})")
+                    parts.append("")
+                for turn in scene_transcript.turns:
+                    vis = "（内心）" if not turn.is_visible else ""
+                    tgt = f" → {turn.target_id}" if turn.target_id else ""
+                    parts.append(f"  {turn.turn_index + 1}. [{turn.character_id}] {turn.turn_type.value}{tgt}{vis}: {turn.content}")
+                transcript_block = f"## 场景模拟记录\n" + "\n".join(parts) + "\n\n"
+            except Exception:
+                pass
+
+        # V9: Chapter timeline block (decoupled pipeline)
+        timeline_block = ""
+        if chapter_timeline:
+            timeline_block = f"## 角色行动时间线\n{chapter_timeline}\n\n"
+
+        # Use the richest source: timeline > transcript > actions
+        source_block = timeline_block or transcript_block or (f"## 角色行动记录\n{actions_text}\n\n" if actions_text else "")
+
+        word_instruction = f"请撰写约{word_count_target}字的文学叙事。" if word_count_target else "请撰写800-1500字的文学叙事。"
+
         prompt = ChatPromptTemplate.from_messages([
             ("system", SYSTEM_PROMPT),
             ("human", (
@@ -68,13 +108,13 @@ class WriterAgent:
                 f"**章节**: 第{chapter_index + 1}章\n"
                 f"**场景**: 第{scene_index + 1}个场景\n"
                 f"**地点**: {location}\n"
-                f"**场景目标**: {scene_objective}\n\n"
+                f"**导演意图**: {objective}\n\n"
                 f"## 角色简介\n{profiles_text}\n\n"
-                f"## 角色行动记录\n{actions_text}\n\n"
+                f"{source_block}"
                 f"{extra_blocks}"
                 f"{'## 前文概要' + chr(10) + previous_context + chr(10) + chr(10) if previous_context else ''}"
-                "请基于以上角色的行动、对话和内心世界，撰写 800-1500 字的文学叙事。"
-                "要求: 语言优美、叙事流畅、人物鲜活。注意字数要求。直接输出散文文本。"
+                f"{word_instruction}"
+                "要求: 语言优美、叙事流畅、人物鲜活。直接输出散文文本。"
             )),
         ])
         chain = prompt | self.llm

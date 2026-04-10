@@ -178,6 +178,57 @@ async def get_character_memories(character_id: str, novel_id: str | None = Query
         return {"error": str(e), "memories": [], "total": 0}
 
 
+@router.get("/characters/{character_id}/memory-heat")
+async def get_memory_heat(character_id: str, novel_id: str | None = Query(None)):
+    """Get memory heat distribution (Hot/Warm/Cold/Frozen partitions + stats)."""
+    try:
+        db_path = await _get_novel_db(novel_id)
+        conn = await get_connection(db_path)
+        from novel_creator.memory.heat_manager import HeatManager
+        hm = HeatManager(conn)
+        partition = await hm.get_partition(character_id)
+        stats = await hm.get_stats(character_id)
+        await conn.close()
+        return {"partition": partition, "stats": stats}
+    except Exception as e:
+        return {"error": str(e), "partition": {}, "stats": {}}
+
+
+@router.get("/characters/{character_id}/era-summaries")
+async def get_era_summaries(character_id: str, novel_id: str | None = Query(None)):
+    """Get era summaries (compressed cold-zone memories) for a character."""
+    try:
+        db_path = await _get_novel_db(novel_id)
+        conn = await get_connection(db_path)
+        from novel_creator.memory.heat_manager import HeatManager
+        hm = HeatManager(conn)
+        summaries = await hm.get_era_summaries(character_id)
+        await conn.close()
+        return {"summaries": summaries, "total": len(summaries)}
+    except Exception as e:
+        return {"error": str(e), "summaries": [], "total": 0}
+
+
+@router.post("/memory/consolidate")
+async def consolidate_memories(
+    character_id: str = Query(...),
+    novel_id: str | None = Query(None),
+):
+    """Manually trigger cold-zone memory consolidation for a character."""
+    try:
+        db_path = await _get_novel_db(novel_id)
+        conn = await get_connection(db_path)
+        from novel_creator.memory.heat_manager import HeatManager
+        hm = HeatManager(conn)
+        summary_id = await hm.consolidate_cold(character_id)
+        await conn.close()
+        if summary_id:
+            return {"ok": True, "summary_id": summary_id}
+        return {"ok": True, "summary_id": None, "message": "Not enough cold memories to consolidate"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
 @router.get("/agents/{character_id}/files")
 async def get_agent_files(character_id: str, novel_id: str | None = Query(None)):
     """Read agent.md and soul.md for a character."""

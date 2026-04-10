@@ -85,25 +85,86 @@
           </div>
         </el-tab-pane>
 
-        <!-- Episodic Memories -->
+        <!-- Episodic Memories (V10: heat-aware) -->
         <el-tab-pane label="🧠 记忆" name="memories">
+          <!-- Heat distribution chart -->
+          <MemoryHeatChart :character-id="character.id" @loaded="onHeatLoaded" />
+
           <div v-if="memoriesLoading" v-loading="true" style="min-height: 200px" />
           <div v-else-if="allMemories.length === 0" class="empty-hint">暂无记忆</div>
           <div v-else class="memory-list">
-            <div v-for="mem in allMemories" :key="mem.memory_id" class="memory-item">
-              <div class="memory-meta">
-                <span>第{{ mem.chapter_index + 1 }}章 场景{{ mem.scene_index + 1 }}</span>
-                <el-tag v-if="mem.importance >= 0.7" size="small" type="warning">重要</el-tag>
-                <span class="valence" :style="{ color: mem.emotional_valence >= 0 ? 'var(--accent-jade)' : 'var(--accent-cinnabar)' }">
-                  {{ mem.emotional_valence >= 0 ? '😊' : '😞' }} {{ mem.emotional_valence.toFixed(1) }}
-                </span>
+            <!-- Group by heat zone if heat data available -->
+            <template v-if="heatPartition">
+              <div v-if="heatPartition.frozen.length" class="heat-zone frozen-zone">
+                <div class="zone-label">🔮 永恒铭刻 ({{ heatPartition.frozen.length }})</div>
+                <div v-for="mem in heatPartition.frozen" :key="mem.memory_id" class="memory-item">
+                  <div class="memory-meta">
+                    <span>第{{ mem.chapter_index + 1 }}章</span>
+                    <el-tag size="small" type="danger">热度 {{ mem.heat_score.toFixed(2) }}</el-tag>
+                  </div>
+                  <div class="memory-content">{{ mem.content }}</div>
+                </div>
               </div>
-              <div class="memory-content">{{ mem.content }}</div>
-              <div class="memory-chars" v-if="mem.involved_characters?.length">
-                涉及: {{ mem.involved_characters.join(', ') }}
+              <div v-if="heatPartition.hot.length" class="heat-zone hot-zone">
+                <div class="zone-label">🔥 鲜活记忆 ({{ heatPartition.hot.length }})</div>
+                <div v-for="mem in heatPartition.hot" :key="mem.memory_id" class="memory-item">
+                  <div class="memory-meta">
+                    <span>第{{ mem.chapter_index + 1 }}章 场景{{ mem.scene_index + 1 }}</span>
+                    <el-tag size="small" type="warning">热度 {{ mem.heat_score.toFixed(2) }}</el-tag>
+                    <span class="valence" :style="{ color: mem.emotional_valence >= 0 ? 'var(--accent-jade)' : 'var(--accent-cinnabar)' }">
+                      {{ mem.emotional_valence >= 0 ? '😊' : '😞' }} {{ mem.emotional_valence.toFixed(1) }}
+                    </span>
+                  </div>
+                  <div class="memory-content">{{ mem.content }}</div>
+                </div>
               </div>
-            </div>
+              <div v-if="heatPartition.warm.length" class="heat-zone warm-zone">
+                <div class="zone-label">🌤️ 温热回忆 ({{ heatPartition.warm.length }})</div>
+                <div v-for="mem in heatPartition.warm.slice(0, 10)" :key="mem.memory_id" class="memory-item">
+                  <div class="memory-meta">
+                    <span>第{{ mem.chapter_index + 1 }}章</span>
+                    <el-tag size="small" type="info">热度 {{ mem.heat_score.toFixed(2) }}</el-tag>
+                  </div>
+                  <div class="memory-content">{{ mem.content }}</div>
+                </div>
+                <div v-if="heatPartition.warm.length > 10" class="more-hint">
+                  …还有 {{ heatPartition.warm.length - 10 }} 条
+                </div>
+              </div>
+              <div v-if="heatPartition.cold.length" class="heat-zone cold-zone">
+                <div class="zone-label">❄️ 冷却记忆 ({{ heatPartition.cold.length }})</div>
+                <div v-for="mem in heatPartition.cold.slice(0, 5)" :key="mem.memory_id" class="memory-item faded">
+                  <div class="memory-meta">
+                    <span>第{{ mem.chapter_index + 1 }}章</span>
+                    <el-tag size="small">热度 {{ mem.heat_score.toFixed(2) }}</el-tag>
+                  </div>
+                  <div class="memory-content">{{ mem.content }}</div>
+                </div>
+                <div v-if="heatPartition.cold.length > 5" class="more-hint">
+                  …还有 {{ heatPartition.cold.length - 5 }} 条待整合
+                </div>
+              </div>
+            </template>
+            <!-- Fallback: flat list (no heat data) -->
+            <template v-else>
+              <div v-for="mem in allMemories" :key="mem.memory_id" class="memory-item">
+                <div class="memory-meta">
+                  <span>第{{ mem.chapter_index + 1 }}章 场景{{ mem.scene_index + 1 }}</span>
+                  <el-tag v-if="mem.importance >= 0.7" size="small" type="warning">重要</el-tag>
+                  <span class="valence" :style="{ color: mem.emotional_valence >= 0 ? 'var(--accent-jade)' : 'var(--accent-cinnabar)' }">
+                    {{ mem.emotional_valence >= 0 ? '😊' : '😞' }} {{ mem.emotional_valence.toFixed(1) }}
+                  </span>
+                </div>
+                <div class="memory-content">{{ mem.content }}</div>
+                <div class="memory-chars" v-if="mem.involved_characters?.length">
+                  涉及: {{ mem.involved_characters.join(', ') }}
+                </div>
+              </div>
+            </template>
           </div>
+
+          <!-- Era summaries -->
+          <EraSummaryPanel :character-id="character.id" />
         </el-tab-pane>
 
         <!-- Emotion History -->
@@ -122,8 +183,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import EmotionChart from './EmotionChart.vue'
+import MemoryHeatChart from './MemoryHeatChart.vue'
+import EraSummaryPanel from './EraSummaryPanel.vue'
 import client from '@/api/client'
-import type { Character } from '@/api/types'
+import { fetchMemoryHeat } from '@/api/memory'
+import type { Character, MemoryHeatItem } from '@/api/types'
 
 const props = defineProps<{ character: Character }>()
 defineEmits<{ 'open-agent-editor': [] }>()
@@ -134,6 +198,7 @@ const allActions = ref<any[]>([])
 const allMemories = ref<any[]>([])
 const actionsLoading = ref(false)
 const memoriesLoading = ref(false)
+const heatPartition = ref<{ hot: MemoryHeatItem[]; warm: MemoryHeatItem[]; cold: MemoryHeatItem[]; frozen: MemoryHeatItem[] } | null>(null)
 
 const emotionLabels: Record<string, string> = {
   happiness: '😊 快乐', anger: '😡 愤怒', fear: '😨 恐惧',
@@ -188,16 +253,31 @@ async function loadMemories() {
   memoriesLoading.value = false
 }
 
+async function loadHeatData() {
+  try {
+    const data = await fetchMemoryHeat(props.character.id)
+    if (data.partition) {
+      heatPartition.value = data.partition
+    }
+  } catch { /* ignore */ }
+}
+
+function onHeatLoaded() {
+  loadHeatData()
+}
+
 watch(() => props.character.id, () => {
   loadFullProfile()
   loadActions()
   loadMemories()
+  loadHeatData()
 }, { immediate: true })
 
 onMounted(() => {
   loadFullProfile()
   loadActions()
   loadMemories()
+  loadHeatData()
 })
 </script>
 
@@ -349,6 +429,41 @@ onMounted(() => {
 
 // Memory List
 .memory-list { max-height: 500px; overflow-y: auto; }
+
+.heat-zone {
+  margin-bottom: var(--sp-md);
+  padding: var(--sp-sm);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--border-rule);
+
+  &.frozen-zone { border-left-color: #a67fd4; background: rgba(166, 127, 212, 0.05); }
+  &.hot-zone { border-left-color: #e04545; background: rgba(224, 69, 69, 0.05); }
+  &.warm-zone { border-left-color: #d4793a; background: rgba(212, 121, 58, 0.05); }
+  &.cold-zone { border-left-color: #58a6ff; background: rgba(88, 166, 255, 0.05); }
+}
+
+.zone-label {
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: var(--sp-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.memory-item.faded {
+  opacity: 0.6;
+}
+
+.more-hint {
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  text-align: center;
+  padding: var(--sp-xs) 0;
+}
+
 .memory-item {
   padding: 6px 0;
   border-bottom: 1px solid var(--border-ghost);

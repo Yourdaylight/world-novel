@@ -22,7 +22,7 @@ defineProps<{
 .panel-section {
   background: transparent;
   border: none;
-  border-bottom: 1px solid var(--border-rule);
+  border-bottom: 1px solid var(--border-default);
   padding-bottom: var(--sp-lg);
   margin-bottom: var(--sp-lg);
 
@@ -37,12 +37,13 @@ defineProps<{
   align-items: center;
   gap: var(--sp-sm);
   padding-bottom: var(--sp-md);
-  margin-bottom: var(--sp-md);
-  border-bottom: 1px solid var(--border-ghost);
+  margin-bottom: var(--p-md, var(--sp-md));
+  border-bottom: 1px solid var(--border-muted);
 }
 
 .panel-section-icon {
   font-size: 1.1rem;
+  opacity: 0.7;
 }
 
 .panel-section-title {
@@ -50,7 +51,7 @@ defineProps<{
   font-size: var(--fs-xs);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   color: var(--text-muted);
 }
 

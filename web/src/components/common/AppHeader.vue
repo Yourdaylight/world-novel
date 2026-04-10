@@ -4,7 +4,7 @@
       <el-button v-if="showBack" text class="back-btn" @click="router.push('/')">
         ← 首页
       </el-button>
-      <h1>🌍 WorldEngine</h1>
+      <h1>🌍 WorldNovel</h1>
     </div>
     <div class="header-right">
       <NovelSelector />

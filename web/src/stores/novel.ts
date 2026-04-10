@@ -14,15 +14,23 @@ export const useNovelStore = defineStore('novel', () => {
       const data = await fetchNovels()
       novels.value = data.novels
       activeNovelId.value = data.active_novel_id
+    } catch (e) {
+      console.error('Failed to load novels:', e)
     } finally {
       loading.value = false
     }
   }
 
   async function switchNovel(novelId: string) {
-    const res = await selectNovel(novelId)
-    if (res.ok) {
-      activeNovelId.value = res.active_novel_id ?? novelId
+    try {
+      const res = await selectNovel(novelId)
+      if (res.ok) {
+        activeNovelId.value = res.active_novel_id ?? novelId
+      } else {
+        console.warn('Switch novel failed:', res)
+      }
+    } catch (e) {
+      console.error('Switch novel error:', e)
     }
   }
 

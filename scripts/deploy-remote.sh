@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================
-#  novel-creator 远程部署脚本
+#  WorldNovel 远程部署脚本
 #
 #  用法:
 #    ./scripts/deploy-remote.sh user@host [选项]
@@ -19,7 +19,7 @@ set -euo pipefail
 
 # ── 参数解析 ────────────────────────────────────────────────
 REMOTE_HOST=""
-REMOTE_DIR="/opt/novel-creator"
+REMOTE_DIR="/opt/worldnovel"
 REMOTE_PORT=8000
 ENV_FILE=""
 SKIP_DEPS=false
@@ -33,7 +33,7 @@ usage() {
   user@host          远程服务器 SSH 地址 (必需)
 
 选项:
-  --dir PATH         远程安装目录 (默认: /opt/novel-creator)
+  --dir PATH         远程安装目录 (默认: /opt/worldnovel)
   --port N           服务端口 (默认: 8000)
   --env FILE         本地 .env 文件路径 (将同步到远程)
   --skip-deps        跳过依赖安装 (仅同步代码并重启)
@@ -42,7 +42,7 @@ usage() {
 
 示例:
   $0 root@42.123.45.67
-  $0 deploy@myserver --dir /home/deploy/novel-creator --port 9000
+  $0 deploy@myserver --dir /home/deploy/worldnovel --port 9000
   $0 root@myserver --env .env.production --skip-deps
   $0 root@myserver --restart
 EOF
@@ -94,14 +94,14 @@ if [ "$RESTART_ONLY" = true ]; then
   ssh "$REMOTE_HOST" bash <<RESTART_EOF
     set -e
     # 停止旧进程
-    if tmux has-session -t novel-creator 2>/dev/null; then
-      tmux kill-session -t novel-creator
+    if tmux has-session -t worldnovel 2>/dev/null; then
+      tmux kill-session -t worldnovel
       echo "[OK] 旧服务已停止"
     fi
     # 启动
     cd "${REMOTE_DIR}"
-    tmux new-session -d -s novel-creator \
-      "source .venv/bin/activate && novel-creator web --host 0.0.0.0 --port ${REMOTE_PORT} 2>&1 | tee logs/server.log"
+    tmux new-session -d -s worldnovel \
+      "source .venv/bin/activate && worldnovel web --host 0.0.0.0 --port ${REMOTE_PORT} 2>&1 | tee logs/server.log"
     echo "[OK] 服务已重启 → http://\$(hostname -I | awk '{print \$1}'):${REMOTE_PORT}"
 RESTART_EOF
   ok "远程服务已重启"
@@ -202,14 +202,14 @@ ssh "$REMOTE_HOST" bash <<REMOTE_EOF
   fi
 
   # ── 停止旧服务 ─────────────────────────────
-  if tmux has-session -t novel-creator 2>/dev/null; then
-    tmux kill-session -t novel-creator
+  if tmux has-session -t worldnovel 2>/dev/null; then
+    tmux kill-session -t worldnovel
     echo "[OK] 旧服务已停止"
     sleep 1
   fi
 
   # ── 启动新服务 ─────────────────────────────
-  echo "[INFO] 启动服务 (tmux session: novel-creator)..."
+  echo "[INFO] 启动服务 (tmux session: worldnovel)..."
 
   # 确保 .venv/bin 在 PATH 中
   ACTIVATE_CMD=""
@@ -217,24 +217,24 @@ ssh "$REMOTE_HOST" bash <<REMOTE_EOF
     ACTIVATE_CMD="source .venv/bin/activate && "
   fi
 
-  tmux new-session -d -s novel-creator \
-    "\${ACTIVATE_CMD} cd ${REMOTE_DIR} && novel-creator web --host 0.0.0.0 --port ${REMOTE_PORT} 2>&1 | tee logs/server.log"
+  tmux new-session -d -s worldnovel \
+    "\${ACTIVATE_CMD} cd ${REMOTE_DIR} && worldnovel web --host 0.0.0.0 --port ${REMOTE_PORT} 2>&1 | tee logs/server.log"
 
   sleep 2
 
   # ── 验证 ───────────────────────────────────
-  if tmux has-session -t novel-creator 2>/dev/null; then
+  if tmux has-session -t worldnovel 2>/dev/null; then
     SERVER_IP=\$(hostname -I 2>/dev/null | awk '{print \$1}' || echo "0.0.0.0")
     echo ""
     echo "╔══════════════════════════════════════════════════╗"
-    echo "║  🌍 WorldEngine 远程部署成功!                     ║"
+    echo "║  🌍 WorldNovel 远程部署成功!                       ║"
     echo "║                                                  ║"
     echo "║  地址: http://\${SERVER_IP}:${REMOTE_PORT}              "
     echo "║  API:  http://\${SERVER_IP}:${REMOTE_PORT}/docs         "
     echo "║                                                  ║"
     echo "║  管理:                                           ║"
-    echo "║    查看日志: tmux attach -t novel-creator        ║"
-    echo "║    停止服务: tmux kill-session -t novel-creator   ║"
+    echo "║    查看日志: tmux attach -t worldnovel             ║"
+    echo "║    停止服务: tmux kill-session -t worldnovel        ║"
     echo "║    查看输出: tail -f ${REMOTE_DIR}/logs/server.log"
     echo "╚══════════════════════════════════════════════════╝"
     echo ""
@@ -248,5 +248,5 @@ REMOTE_EOF
 ok "远程部署完成！"
 echo ""
 echo -e "${GREEN}查看远程日志:${NC}  ssh ${REMOTE_HOST} 'tail -f ${REMOTE_DIR}/logs/server.log'"
-echo -e "${GREEN}进入远程终端:${NC}  ssh ${REMOTE_HOST} 'tmux attach -t novel-creator'"
-echo -e "${GREEN}停止远程服务:${NC}  ssh ${REMOTE_HOST} 'tmux kill-session -t novel-creator'"
+echo -e "${GREEN}进入远程终端:${NC}  ssh ${REMOTE_HOST} 'tmux attach -t worldnovel'"
+echo -e "${GREEN}停止远程服务:${NC}  ssh ${REMOTE_HOST} 'tmux kill-session -t worldnovel'"

@@ -18,3 +18,5 @@ web/dist/
 web/src/auto-imports.d.ts
 web/src/components.d.ts
 .gstack/
+.codebuddy/
+.vscode/

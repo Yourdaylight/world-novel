@@ -18,6 +18,11 @@ export const useProgressStore = defineStore('progress', () => {
   const percent = computed(() => (total.value > 0 ? Math.round((completed.value / total.value) * 100) : 0))
   const simPercent = computed(() => (simTotal.value > 0 ? Math.round((simCompleted.value / simTotal.value) * 100) : 0))
 
+  // Shared isRunning computation — used by DashboardLayout and OverviewPage
+  const isRunning = computed(() =>
+    phase.value !== 'idle' && phase.value !== 'done' && phase.value !== 'error' && !paused.value
+  )
+
   async function loadProgress() {
     const data = await fetchProgress()
     completed.value = data.completed
@@ -47,6 +52,7 @@ export const useProgressStore = defineStore('progress', () => {
   return {
     completed, total, phase, paused, percent, checkpoints,
     simCompleted, simTotal, simRunning, simPercent,
+    isRunning,
     loadProgress, loadCheckpoints, updateFromWS, updateSimFromWS,
   }
 })

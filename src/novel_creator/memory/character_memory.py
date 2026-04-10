@@ -9,6 +9,8 @@ import aiosqlite
 from novel_creator.memory.belief_store import BeliefStore
 from novel_creator.memory.emotional_store import EmotionalStore
 from novel_creator.memory.episodic_store import EpisodicStore
+from novel_creator.memory.heat_manager import HeatManager
+from novel_creator.memory.memory_router import MemoryRouter
 from novel_creator.memory.reflection_store import ReflectionStore
 from novel_creator.memory.relationship_store import RelationshipStore
 from novel_creator.memory.schema_store import SchemaStore
@@ -27,17 +29,28 @@ from novel_creator.models.relationship import Relationship
 class CharacterMemory:
     """Unified memory facade for a single character. Enforces data isolation by character_id."""
 
-    def __init__(self, conn: aiosqlite.Connection, character_id: str):
+    def __init__(
+        self,
+        conn: aiosqlite.Connection,
+        character_id: str,
+        *,
+        vector_store=None,
+        graph_store=None,
+    ):
         self.conn = conn
         self.character_id = character_id
-        self.episodic = EpisodicStore(conn, character_id)
+        self.episodic = EpisodicStore(conn, character_id, vector_store=vector_store)
         self.emotional = EmotionalStore(conn, character_id)
-        self.relationships = RelationshipStore(conn, character_id)
-        self.semantic = SemanticStore(conn, character_id)
+        self.relationships = RelationshipStore(conn, character_id, graph_store=graph_store)
+        self.semantic = SemanticStore(conn, character_id, vector_store=vector_store)
         self.beliefs = BeliefStore(conn, character_id)
         self.schemas = SchemaStore(conn, character_id)
         self.traumas = TraumaStore(conn, character_id)
         self.reflections = ReflectionStore(conn, character_id)
+        self.heat = HeatManager(conn)
+        self.router = MemoryRouter(conn, vector_store=vector_store, graph_store=graph_store)
+        self._vector_store = vector_store
+        self._graph_store = graph_store
 
     async def save_profile(self, profile: CharacterProfile) -> None:
         await self.conn.execute(
@@ -107,31 +120,37 @@ class CharacterMemory:
     async def recall_relevant(
         self, query: str, chapter: int, top_k: int = 5,
     ) -> list[str]:
-        """Hybrid recall: recent episodic + important + semantic similarity."""
-        results: list[str] = []
+        """Hybrid recall via MemoryRouter: hot + semantic + episodic + trauma.
 
-        # Recent episodic memories
-        recent = await self.episodic.get_recent(limit=3)
-        for m in recent:
-            results.append(f"[近期记忆] {m.content}")
-
-        # Important memories
-        important = await self.episodic.get_important(min_importance=0.7, limit=3)
-        seen = {m.content for m in recent}
-        for m in important:
-            if m.content not in seen:
-                results.append(f"[重要记忆] {m.content}")
-
-        # Semantic search
+        Returns formatted strings for backward compatibility.
+        """
         try:
-            semantic_results = await self.semantic.search(query, top_k=top_k)
-            for mem, score in semantic_results:
-                if score > 0.3 and mem.content not in seen:
-                    results.append(f"[相关记忆] {mem.content}")
+            fragments = await self.router.recall_relevant(
+                self.character_id, query, chapter, top_k=top_k,
+            )
+            source_labels = {
+                "hot": "鲜活记忆",
+                "semantic": "相关记忆",
+                "episodic": "唤起记忆",
+                "trauma": "刻骨铭心",
+                "era_summary": "模糊过往",
+            }
+            return [
+                f"[{source_labels.get(f.source, f.source)}] {f.content}"
+                for f in fragments
+            ][:top_k * 2]
         except Exception:
-            pass  # Graceful degradation if embedding fails
-
-        return results[:top_k * 2]
+            # Ultimate fallback: simple recent + important
+            results: list[str] = []
+            recent = await self.episodic.get_recent(limit=3)
+            for m in recent:
+                results.append(f"[近期记忆] {m.content}")
+            important = await self.episodic.get_important(min_importance=0.7, limit=3)
+            seen = {m.content for m in recent}
+            for m in important:
+                if m.content not in seen:
+                    results.append(f"[重要记忆] {m.content}")
+            return results[:top_k * 2]
 
     async def get_context_window(
         self, chapter: int, scene: int, *, timeline=None,
@@ -199,11 +218,48 @@ class CharacterMemory:
                 for ev in char_events[-5:]:
                     parts.append(f"  [第{ev.chapter_index + 1}章] {ev.title}: {ev.description[:60]}")
         else:
-            # Original logic (backward compatible)
-            memories = await self.recall_relevant(f"第{chapter}章第{scene}场景", chapter)
-            if memories:
-                parts.append("\n【记忆】")
-                parts.extend(f"  {m}" for m in memories)
+            # V10: Heat-based memory injection (replaces flat recall)
+            parts.append("\n【记忆】")
+            partition = await self.heat.get_partition(self.character_id)
+
+            # Hot memories — always injected
+            if partition["hot"]:
+                parts.append("  ── 鲜活记忆 ──")
+                for m in partition["hot"][:8]:
+                    parts.append(
+                        f"  [第{m['chapter_index']+1}章] {m['content']}"
+                    )
+
+            # Warm memories — semantic match on-demand
+            if partition["warm"]:
+                query = f"第{chapter}章第{scene}场景"
+                try:
+                    semantic_results = await self.semantic.search(query, top_k=3)
+                    warm_ids = {m["memory_id"] for m in partition["warm"]}
+                    matched = []
+                    for mem, score in semantic_results:
+                        if score > 0.3:
+                            matched.append(f"  [相关回忆] {mem.content}")
+                    if matched:
+                        parts.append("  ── 唤起的回忆 ──")
+                        parts.extend(matched[:3])
+                except Exception:
+                    pass
+
+            # Era summaries — compressed cold memories
+            summaries = await self.heat.get_era_summaries(self.character_id)
+            if summaries:
+                parts.append("  ── 模糊的过往 ──")
+                for s in summaries[-3:]:
+                    parts.append(
+                        f"  [第{s['chapter_start']+1}-{s['chapter_end']+1}章] {s['summary']}"
+                    )
+
+            # Frozen memories — trauma anchors, always present
+            if partition["frozen"]:
+                parts.append("  ── 永不磨灭 ──")
+                for m in partition["frozen"][:3]:
+                    parts.append(f"  [刻骨铭心] {m['content']}")
 
         # Emotional state
         emotion = await self.emotional.get_latest()

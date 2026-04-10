@@ -34,20 +34,23 @@ class GenerateRequest(BaseModel):
     mode: str = "full"  # "full" | "chapter_by_chapter"
 
 
+_ALLOWED_CLEAR_TABLES = frozenset({
+    "chapter_texts",
+    "character_actions",
+    "scene_turns",
+    "scene_metadata",
+    "generation_checkpoints",
+    "god_decisions",
+    "timeline_events",
+    "token_usage",
+    "simulation_beats",
+})
+
+
 async def _clear_generation_data(db_path: str) -> None:
     """Clear only generation products, preserving outlines, characters, foreshadows, etc."""
     conn = await get_connection(db_path)
-    for table in (
-        "chapter_texts",
-        "character_actions",
-        "scene_turns",
-        "scene_metadata",
-        "generation_checkpoints",
-        "god_decisions",
-        "timeline_events",
-        "token_usage",
-        "simulation_beats",
-    ):
+    for table in _ALLOWED_CLEAR_TABLES:  # type: ignore[assignment]
         await conn.execute(f"DELETE FROM {table}")  # noqa: S608
     await conn.commit()
     await conn.close()
@@ -731,7 +734,7 @@ async def get_progress(novel_id: str | None = Query(None)):
                 "completed": row["completed_chapters"],
                 "total": row["total_chapters"],
                 "phase": row["phase"],
-                "paused": row["phase"] not in ("done",),
+                "paused": row["phase"] == "paused",
                 "checkpoint_id": row["checkpoint_id"],
                 "novel_title": row["novel_title"],
             }

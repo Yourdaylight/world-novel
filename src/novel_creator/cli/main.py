@@ -1,4 +1,4 @@
-"""Typer CLI entry point for novel-creator."""
+"""Typer CLI entry point for WorldNovel."""
 
 from __future__ import annotations
 

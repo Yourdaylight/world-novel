@@ -3,22 +3,36 @@
 Instead of injecting the full world.summary() to every character,
 each character maintains their own knowledge graph seeded from their
 backstory and expanded through scene interactions.
+
+V10: Optionally syncs knowledge entries to Neo4j graph_store.
 """
 
 from __future__ import annotations
+
+import asyncio
+import logging
 
 import aiosqlite
 
 from novel_creator.models.character import CharacterProfile
 from novel_creator.models.world import WorldView
 
+logger = logging.getLogger("novel_creator.memory.graph")
+
 
 class WorldKnowledgeStore:
     """Per-character world knowledge CRUD."""
 
-    def __init__(self, conn: aiosqlite.Connection, character_id: str):
+    def __init__(
+        self,
+        conn: aiosqlite.Connection,
+        character_id: str,
+        *,
+        graph_store=None,
+    ):
         self.conn = conn
         self.character_id = character_id
+        self._graph_store = graph_store
 
     # ------------------------------------------------------------------
     # Seed initial knowledge from character backstory
@@ -167,6 +181,28 @@ class WorldKnowledgeStore:
             (self.character_id, knowledge_type, key, content, source, confidence, chapter),
         )
         await self.conn.commit()
+
+        # V10: Async sync to Neo4j (fire-and-forget)
+        if self._graph_store is not None:
+            try:
+                asyncio.create_task(self._sync_neo4j(knowledge_type, key, content, confidence))
+            except Exception as e:
+                logger.warning("Neo4j knowledge sync schedule failed: %s", e)
+
+    async def _sync_neo4j(
+        self, knowledge_type: str, key: str, content: str, confidence: float,
+    ) -> None:
+        """Background task to sync world knowledge to Neo4j."""
+        try:
+            await self._graph_store.sync_world_knowledge(
+                character_id=self.character_id,
+                knowledge_type=knowledge_type,
+                knowledge_key=key,
+                content=content,
+                confidence=confidence,
+            )
+        except Exception as e:
+            logger.warning("Neo4j sync_world_knowledge failed: %s", e)
 
     # ------------------------------------------------------------------
     # Query knowledge
