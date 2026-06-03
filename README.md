@@ -1,10 +1,10 @@
-# 🌍 WorldEngine — 多Agent小说生成系统
+# 🌍 world-novel — 多Agent协作长篇小说自动生成系统
 
 > **造物主的创世工坊**：通过三个终极命题定义世界，由AI Agent团队自动生成完整小说。
 
 ## 概览
 
-WorldEngine 是一个基于多Agent协作的长篇小说自动生成系统。每个角色都是独立的AI Agent，拥有自己的记忆、情感、关系网络和行动逻辑。系统通过 LangGraph 编排 7 个阶段的流水线，从世界观构建到章节写作全程自动化，同时提供 Web 可视化仪表板实时观察每个 Agent 的心理活动和交互。
+world-novel 是一个基于多Agent协作的长篇小说自动生成系统。每个角色都是独立的AI Agent，拥有自己的记忆、情感、关系网络和行动逻辑。系统通过 LangGraph 编排 7 个阶段的流水线，从世界观构建到章节写作全程自动化，同时提供 Web 可视化仪表板实时观察每个 Agent 的心理活动和交互。
 
 ### 核心特性
 
@@ -337,43 +337,43 @@ data/novels/玄尘界/
 
 管理你的所有小说世界，一键创建新世界。
 
-![首页书架](docs/images/final-home.png)
+<img src="docs/images/final-home.png" alt="首页书架" style="max-height: 360px; width: auto; border-radius: 8px;">
 
 ### 概览面板
 
 三命题展示、生成控制、实时统计和卷册结构。
 
-![概览面板](docs/images/final-dashboard.png)
+<img src="docs/images/final-dashboard.png" alt="概览面板" style="max-height: 360px; width: auto; border-radius: 8px;">
 
 ### 创世向导
 
 通过「是什么/从何来/往何去」三步定义世界本质。
 
-![创世向导](docs/images/create-step1.png)
+<img src="docs/images/create-step1.png" alt="创世向导" style="max-height: 360px; width: auto; border-radius: 8px;">
 
 ### 角色与关系图谱
 
 可视化关系网络，查看角色完整档案。
 
-![角色系统](docs/images/final-characters.png)
+<img src="docs/images/final-characters.png" alt="角色系统" style="max-height: 360px; width: auto; border-radius: 8px;">
 
 ### 章节阅读
 
 逐章查看 AI 生成的完整叙事文本。
 
-![章节阅读](docs/images/final-chapters.png)
+<img src="docs/images/final-chapters.png" alt="章节阅读" style="max-height: 360px; width: auto; border-radius: 8px;">
 
 ### 史官对话
 
 与掌握全局记忆的 AI 史官讨论剧情、分析角色。
 
-![史官对话](docs/images/final-historian.png)
+<img src="docs/images/final-historian.png" alt="史官对话" style="max-height: 360px; width: auto; border-radius: 8px;">
 
 ### 控制台
 
 运行模式切换、生成控制、CLI 参考。
 
-![控制台](docs/images/final-control.png)
+<img src="docs/images/final-control.png" alt="控制台" style="max-height: 360px; width: auto; border-radius: 8px;">
 
 ---
 
