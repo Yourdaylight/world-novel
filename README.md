@@ -331,6 +331,52 @@ data/novels/玄尘界/
 - `GET /api/characters/{id}/memories` — 全部记忆
 - `GET /api/emotions/{id}` — 情感历史
 
+## 界面截图
+
+### 首页书架
+
+管理你的所有小说世界，一键创建新世界。
+
+![首页书架](docs/images/final-home.png)
+
+### 概览面板
+
+三命题展示、生成控制、实时统计和卷册结构。
+
+![概览面板](docs/images/final-dashboard.png)
+
+### 创世向导
+
+通过「是什么/从何来/往何去」三步定义世界本质。
+
+![创世向导](docs/images/create-step1.png)
+
+### 角色与关系图谱
+
+可视化关系网络，查看角色完整档案。
+
+![角色系统](docs/images/final-characters.png)
+
+### 章节阅读
+
+逐章查看 AI 生成的完整叙事文本。
+
+![章节阅读](docs/images/final-chapters.png)
+
+### 史官对话
+
+与掌握全局记忆的 AI 史官讨论剧情、分析角色。
+
+![史官对话](docs/images/final-historian.png)
+
+### 控制台
+
+运行模式切换、生成控制、CLI 参考。
+
+![控制台](docs/images/final-control.png)
+
+---
+
 ### AI 交互
 - `POST /api/ai/historian-chat` — 与史官对话
 - `POST /api/ai/analyze-proposition` — 命题分析
