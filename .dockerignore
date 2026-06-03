@@ -1,0 +1,66 @@
+# ============================================
+# world-novel Docker 构建排除清单
+# ============================================
+
+# Git
+.git/
+.gitignore
+
+# Python 虚拟环境
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# 前端构建产物
+dist/
+node_modules/
+*.tsbuildinfo
+
+# 数据文件（通过 volume 挂载，不打包进镜像）
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+data/qdrant/
+data/neo4j/
+
+# 日志和备份
+logs/
+backups/
+*.log
+
+# 文档和测试
+tests/
+docs/
+*.md
+DEPLOYMENT_REVIEW.md
+
+# 部署脚本（本地用，不打包）
+scripts/*.service
+scripts/*.conf
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 环境配置（通过 volume 或 env 注入）
+.env
+.env.*
+!.env.example
+
+# Docker 自身
+Dockerfile
+docker-compose*.yml
+.dockerignore
