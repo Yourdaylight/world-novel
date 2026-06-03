@@ -47,6 +47,10 @@ class Settings(BaseSettings):
     neo4j_password: str = ""
     neo4j_enabled: bool = False
 
+    # Authentication & Quota
+    jwt_secret: str = "worldengine-dev-secret-change-in-production"
+    admin_code_prefix: str = "admin"
+
     # Memory Decay (MemoryOS)
     memory_decay_factor: float = 0.92
     memory_access_bonus: float = 0.15

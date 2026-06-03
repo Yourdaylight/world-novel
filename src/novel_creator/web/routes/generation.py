@@ -7,15 +7,17 @@ import json
 import logging
 import traceback
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 
 from novel_creator.config import settings
 from novel_creator.memory.database import get_connection
+from novel_creator.memory.quota_store import check_and_deduct_tokens
 from novel_creator.memory.registry import (
     get_novel_by_id,
     update_novel_status,
 )
+from novel_creator.web.auth_deps import optional_auth, AuthUser
 
 from ._helpers import _get_novel_db
 
@@ -57,7 +59,11 @@ async def _clear_generation_data(db_path: str) -> None:
 
 
 @router.post("/worlds/{novel_id}/generate")
-async def api_start_generation(novel_id: str, req: GenerateRequest):
+async def api_start_generation(
+    novel_id: str,
+    req: GenerateRequest,
+    auth: AuthUser | None = Depends(optional_auth),
+):
     """Start novel generation (async, progress via WebSocket)."""
     try:
         novel = get_novel_by_id(novel_id)
@@ -67,6 +73,17 @@ async def api_start_generation(novel_id: str, req: GenerateRequest):
         # Check if already running
         if novel_id in _generation_tasks and not _generation_tasks[novel_id].done():
             return {"ok": False, "error": "Generation already in progress"}
+
+        # 检查用户额度（如已认证）
+        user_code = auth.code if auth else None
+        if user_code:
+            conn = await get_connection(settings.db_path)
+            try:
+                ok, err_msg = await check_and_deduct_tokens(conn, user_code, tokens_needed=0, requests_needed=1)
+                if not ok:
+                    return {"ok": False, "error": f"额度不足: {err_msg}", "code": 402}
+            finally:
+                await conn.close()
 
         # Load propositions from DB
         conn = await get_connection(novel.db_path)
@@ -370,7 +387,11 @@ class WriteChapterRequest(BaseModel):
 
 
 @router.post("/worlds/{novel_id}/write-chapter")
-async def api_write_chapter(novel_id: str, req: WriteChapterRequest):
+async def api_write_chapter(
+    novel_id: str,
+    req: WriteChapterRequest,
+    auth: AuthUser | None = Depends(optional_auth),
+):
     """Write a chapter from the simulation timeline (fully decoupled).
 
     Reads scene_turns from DB, gives the writer the full timeline,
@@ -381,6 +402,17 @@ async def api_write_chapter(novel_id: str, req: WriteChapterRequest):
         novel = get_novel_by_id(novel_id)
         if novel is None:
             return {"ok": False, "error": f"Novel '{novel_id}' not found"}
+
+        # 检查用户额度（如已认证）
+        user_code = auth.code if auth else None
+        if user_code:
+            conn = await get_connection(settings.db_path)
+            try:
+                ok, err_msg = await check_and_deduct_tokens(conn, user_code, tokens_needed=0, requests_needed=1)
+                if not ok:
+                    return {"ok": False, "error": f"额度不足: {err_msg}", "code": 402}
+            finally:
+                await conn.close()
 
         conn = await get_connection(novel.db_path)
         import json as _json
@@ -586,7 +618,11 @@ class RewriteRequest(BaseModel):
 
 
 @router.post("/worlds/{novel_id}/rewrite-chapter")
-async def api_rewrite_chapter(novel_id: str, req: RewriteRequest):
+async def api_rewrite_chapter(
+    novel_id: str,
+    req: RewriteRequest,
+    auth: AuthUser | None = Depends(optional_auth),
+):
     """Rewrite a single chapter's narrative text without re-simulating characters.
 
     The simulation layer (character actions, memories, relationships) stays unchanged.
@@ -596,6 +632,17 @@ async def api_rewrite_chapter(novel_id: str, req: RewriteRequest):
         novel = get_novel_by_id(novel_id)
         if novel is None:
             return {"ok": False, "error": f"Novel '{novel_id}' not found"}
+
+        # 检查用户额度（如已认证）
+        user_code = auth.code if auth else None
+        if user_code:
+            conn = await get_connection(settings.db_path)
+            try:
+                ok, err_msg = await check_and_deduct_tokens(conn, user_code, tokens_needed=0, requests_needed=1)
+                if not ok:
+                    return {"ok": False, "error": f"额度不足: {err_msg}", "code": 402}
+            finally:
+                await conn.close()
 
         conn = await get_connection(novel.db_path)
 

@@ -21,6 +21,7 @@ dependencies = [
     "pydantic-settings>=2.0",
     "qdrant-client>=1.7",
     "neo4j>=5.0",
+    "python-jose[cryptography]>=3.4",
 ]
 
 [project.scripts]

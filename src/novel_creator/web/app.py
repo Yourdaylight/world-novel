@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import time
 import traceback
 from pathlib import Path
@@ -19,14 +20,18 @@ from novel_creator.web.routes import router
 
 logger = get_logger("novel_creator.web")
 
-app = FastAPI(title="WorldNovel Dashboard", version="0.5.0")
+app = FastAPI(title="WorldNovel Dashboard", version="0.6.0")
 
 # CORS — allow local dev (Vite dev server)
+# 生产环境应限制为具体域名
+_cors_origins = os.environ.get("NOVEL_CORS_ORIGINS", "*").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_cors_origins if _cors_origins != ["*"] else ["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
+    expose_headers=["X-Request-Id"],
+    max_age=600,
 )
 
 app.include_router(router, prefix="/api")
@@ -37,6 +42,30 @@ app.include_router(router, prefix="/api")
 async def health():
     """Quick health check for smoke tests and monitoring."""
     return {"status": "ok", "version": "0.5.0"}
+
+
+# ── Security headers middleware ─────────────────────────
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    """添加安全响应头部，防止常见Web攻击。"""
+    response = await call_next(request)
+    # 防止MIME类型嗅探
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    # 防止点击劫持
+    response.headers["X-Frame-Options"] = "DENY"
+    # XSS保护
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    # 限制Referrer信息泄漏
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    # 简单的CSP策略
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: blob:; "
+        "connect-src 'self' ws: wss:;"
+    )
+    return response
 
 
 # ── Request logging middleware ───────────────────────────
@@ -65,8 +94,9 @@ async def request_logging_middleware(request: Request, call_next):
             "%s %s → 500 UNHANDLED (%.0fms): %s\n%s",
             method, path, duration_ms, exc, traceback.format_exc(),
         )
+        # 生产环境不暴露内部错误细节
         return JSONResponse(
-            {"detail": f"Internal Server Error: {exc}"},
+            {"detail": "Internal Server Error"},
             status_code=500,
         )
 

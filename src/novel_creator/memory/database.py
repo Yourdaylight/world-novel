@@ -408,6 +408,55 @@ CREATE TABLE IF NOT EXISTS character_world_knowledge (
 
 CREATE INDEX IF NOT EXISTS idx_era_summaries_char ON era_summaries(character_id);
 CREATE INDEX IF NOT EXISTS idx_world_knowledge_char ON character_world_knowledge(character_id);
+
+-- V7: Invite code user system (邀请码用户系统)
+CREATE TABLE IF NOT EXISTS invite_codes (
+    code TEXT PRIMARY KEY,
+    description TEXT DEFAULT '',
+    is_active BOOLEAN DEFAULT 1,
+    created_by TEXT DEFAULT 'admin',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    used_count INTEGER DEFAULT 0,
+    max_uses INTEGER DEFAULT 1
+);
+
+CREATE INDEX IF NOT EXISTS idx_invite_codes_active ON invite_codes(is_active);
+
+-- V7: User quota management (用户额度管理)
+CREATE TABLE IF NOT EXISTS user_quotas (
+    code TEXT PRIMARY KEY,
+    total_tokens INTEGER DEFAULT 0,
+    used_tokens INTEGER DEFAULT 0,
+    total_requests INTEGER DEFAULT 0,
+    used_requests INTEGER DEFAULT 0,
+    chapter_quota INTEGER DEFAULT 0,
+    chapters_used INTEGER DEFAULT 0,
+    plan_type TEXT DEFAULT 'free',
+    expires_at TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (code) REFERENCES invite_codes(code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_quotas_plan ON user_quotas(plan_type);
+CREATE INDEX IF NOT EXISTS idx_user_quotas_expires ON user_quotas(expires_at);
+
+-- V7: Per-user token usage log (用户Token使用日志)
+CREATE TABLE IF NOT EXISTS user_token_usage_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code TEXT NOT NULL,
+    role TEXT NOT NULL,
+    chapter_index INTEGER DEFAULT -1,
+    prompt_tokens INTEGER DEFAULT 0,
+    completion_tokens INTEGER DEFAULT 0,
+    total_tokens INTEGER DEFAULT 0,
+    model TEXT DEFAULT '',
+    description TEXT DEFAULT '',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_usage_code ON user_token_usage_log(code);
+CREATE INDEX IF NOT EXISTS idx_user_usage_created ON user_token_usage_log(created_at);
 """
 
 
