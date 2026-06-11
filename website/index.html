@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>world-novel — 多Agent协作长篇小说自动生成系统</title>
+    <meta name="description" content="world-novel 是一个多Agent协作的长篇小说自动生成系统，让每个角色独立意识、对话、行动，创造真实的文学世界。">
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Tailwind 配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        primary: '#f97316',
+                        'primary-hover': '#ea580c',
+                        'primary-glow': 'rgba(249, 115, 22, 0.3)',
+                        dark: {
+                            900: '#09090b',
+                            800: '#18181b',
+                            700: '#27272a',
+                            600: '#3f3f46',
+                        },
+                        text: {
+                            primary: '#fafafa',
+                            secondary: '#a1a1aa',
+                            muted: '#71717a',
+                        }
+                    },
+                    animation: {
+                        'glow-pulse': 'glowPulse 4s ease-in-out infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'fade-in-up': 'fadeInUp 0.7s ease-out forwards',
+                        'gradient-shift': 'gradientShift 8s ease infinite',
+                    },
+                    keyframes: {
+                        glowPulse: {
+                            '0%, 100%': { opacity: 0.5, transform: 'scale(1)' },
+                            '50%': { opacity: 0.8, transform: 'scale(1.1)' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-12px)' },
+                        },
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(30px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        gradientShift: {
+                            '0%, 100%': { backgroundPosition: '0% 50%' },
+                            '50%': { backgroundPosition: '100% 50%' },
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- 自定义样式 -->
+    <style>
+        /* ===== 全局基础样式 ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #09090b;
+            color: #fafafa;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        ::selection {
+            background-color: rgba(249, 115, 22, 0.3);
+            color: #fafafa;
+        }
+
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #09090b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3f3f46;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #52525b;
+        }
+
+        /* ===== Hero 区域渐变光晕 ===== */
+        .hero-glow {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(120px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .hero-glow-1 {
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(249, 115, 22, 0.25) 0%, transparent 70%);
+            top: -200px;
+            right: 10%;
+            animation: glowPulse 6s ease-in-out infinite;
+        }
+
+        .hero-glow-2 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(234, 88, 12, 0.15) 0%, transparent 70%);
+            bottom: -100px;
+            left: 5%;
+            animation: glowPulse 8s ease-in-out infinite 1s;
+        }
+
+        .hero-glow-3 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(251, 146, 60, 0.12) 0%, transparent 70%);
+            top: 40%;
+            left: 30%;
+            animation: glowPulse 7s ease-in-out infinite 2s;
+        }
+
+        /* ===== 文字渐变效果 ===== */
+        .text-gradient {
+            background: linear-gradient(135deg, #fafafa 0%, #f97316 50%, #fb923c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .text-gradient-subtle {
+            background: linear-gradient(135deg, #fafafa 0%, #a1a1aa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* ===== 卡片样式 ===== */
+        .feature-card {
+            background: linear-gradient(145deg, #18181b 0%, #27272a 100%);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(249, 115, 22, 0.08) 0%, transparent 60%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            pointer-events: none;
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px);
+            border-color: rgba(249, 115, 22, 0.25);
+            box-shadow: 0 20px 60px -15px rgba(249, 115, 22, 0.15), 0 0 30px rgba(249, 115, 22, 0.05);
+        }
+
+        /* ===== 架构卡片特殊样式 ===== */
+        .arch-card {
+            background: linear-gradient(135deg, #18181b 0%, #27272a 100%);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .arch-card::after {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: 20%;
+            right: 20%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(249, 115, 22, 0.5), transparent);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .arch-card:hover::after {
+            opacity: 1;
+        }
+
+        .arch-card:hover {
+            transform: translateY(-6px);
+            border-color: rgba(249, 115, 22, 0.2);
+            box-shadow: 0 16px 50px -12px rgba(249, 115, 22, 0.12);
+        }
+
+        /* ===== 代码块样式 ===== */
+        .code-block {
+            background: linear-gradient(145deg, #0c0c0f 0%, #18181b 100%);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+        }
+
+        .code-line {
+            counter-increment: line;
+        }
+
+        /* ===== 滚动显示动画 ===== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal-delay-1 { transition-delay: 0.1s; }
+        .reveal-delay-2 { transition-delay: 0.2s; }
+        .reveal-delay-3 { transition-delay: 0.3s; }
+        .reveal-delay-4 { transition-delay: 0.4s; }
+        .reveal-delay-5 { transition-delay: 0.5s; }
+        .reveal-delay-6 { transition-delay: 0.6s; }
+
+        /* ===== 导航栏毛玻璃 ===== */
+        .nav-glass {
+            background: rgba(9, 9, 11, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* ===== CTA 区域渐变背景 ===== */
+        .cta-gradient {
+            background: linear-gradient(135deg, rgba(249, 115, 22, 0.08) 0%, rgba(234, 88, 12, 0.03) 50%, transparent 100%);
+            position: relative;
+        }
+
+        .cta-gradient::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 300px;
+            background: radial-gradient(ellipse, rgba(249, 115, 22, 0.12) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        /* ===== 装饰性连线 ===== */
+        .pipeline-connector {
+            position: relative;
+        }
+
+        .pipeline-connector::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: -20px;
+            width: 20px;
+            height: 2px;
+            background: linear-gradient(90deg, rgba(249, 115, 22, 0.4), transparent);
+            transform: translateY(-50%);
+        }
+
+        @media (max-width: 1024px) {
+            .pipeline-connector::after {
+                display: none;
+            }
+        }
+
+        /* ===== 粒子画布 ===== */
+        #particle-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.4;
+        }
+
+        /* ===== 脉冲光环 ===== */
+        .pulse-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 1px solid rgba(249, 115, 22, 0.15);
+            animation: pulseExpand 3s ease-out infinite;
+        }
+
+        @keyframes pulseExpand {
+            0% {
+                width: 0;
+                height: 0;
+                opacity: 0.6;
+            }
+            100% {
+                width: 300px;
+                height: 300px;
+                opacity: 0;
+            }
+        }
+
+        /* ===== 移动端菜单 ===== */
+        .mobile-menu {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease, opacity 0.3s ease;
+            opacity: 0;
+        }
+
+        .mobile-menu.open {
+            max-height: 400px;
+            opacity: 1;
+        }
+
+        /* ===== 按钮光效 ===== */
+        .btn-glow {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-glow::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .btn-glow:hover::before {
+            left: 100%;
+        }
+
+        /* ===== 步骤编号样式 ===== */
+        .step-number {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 900;
+            font-size: 2.5rem;
+            line-height: 1;
+        }
+
+        /* ===== 高亮标签 ===== */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+
+        .badge-primary {
+            background: rgba(249, 115, 22, 0.15);
+            color: #fb923c;
+            border: 1px solid rgba(249, 115, 22, 0.25);
+        }
+
+        /* ===== 分隔线渐变 ===== */
+        .divider-gradient {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(249, 115, 22, 0.3), transparent);
+        }
+
+        /* ===== 打字机光标 ===== */
+        .typing-cursor::after {
+            content: '|';
+            animation: blink 1s step-end infinite;
+            color: #f97316;
+            margin-left: 2px;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        /* ===== 流水线箭头 ===== */
+        .pipeline-arrow {
+            color: #f97316;
+            opacity: 0.4;
+            font-size: 1.2rem;
+        }
+
+        /* ===== 特色区域背景装饰 ===== */
+        .section-glow {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            filter: blur(150px);
+            pointer-events: none;
+            z-index: 0;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen antialiased">
+
+    <!-- ===== 固定导航栏 ===== -->
+    <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-500">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16 sm:h-20">
+                <!-- Logo -->
+                <a href="#" class="flex items-center gap-3 group">
+                    <!-- Logo SVG -->
+                    <svg class="w-8 h-8 sm:w-9 sm:h-9 transition-transform duration-300 group-hover:rotate-12" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="40" height="40" rx="10" fill="url(#logo-gradient)"/>
+                        <path d="M12 20C12 15.5817 15.5817 12 20 12C24.4183 12 28 15.5817 28 20" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                        <circle cx="20" cy="24" r="3" fill="white"/>
+                        <defs>
+                            <linearGradient id="logo-gradient" x1="0" y1="0" x2="40" y2="40">
+                                <stop stop-color="#f97316"/>
+                                <stop offset="1" stop-color="#ea580c"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <span class="text-lg sm:text-xl font-bold tracking-tight text-text-primary">world-novel</span>
+                </a>
+
+                <!-- 桌面端导航链接 -->
+                <div class="hidden md:flex items-center gap-8">
+                    <a href="#features" class="text-sm font-medium text-text-secondary hover:text-text-primary transition-colors duration-200">特性</a>
+                    <a href="#architecture" class="text-sm font-medium text-text-secondary hover:text-text-primary transition-colors duration-200">架构</a>
+                    <a href="#memory" class="text-sm font-medium text-text-secondary hover:text-text-primary transition-colors duration-200">记忆系统</a>
+                    <a href="#workflow" class="text-sm font-medium text-text-secondary hover:text-text-primary transition-colors duration-200">工作流</a>
+                    <a href="#screenshots" class="text-sm font-medium text-primary hover:text-primary-hover transition-colors duration-200">演示</a>
+                </div>
+
+                <!-- 桌面端 CTA -->
+                <div class="hidden md:flex items-center gap-4">
+                    <a href="https://github.com/Yourdaylight/world-novel" target="_blank" rel="noopener noreferrer"
+                       class="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-text-primary bg-dark-700 hover:bg-dark-600 border border-white/10 rounded-lg transition-all duration-200 hover:border-primary/30">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+                        </svg>
+                        GitHub
+                    </a>
+                </div>
+
+                <!-- 移动端菜单按钮 -->
+                <button id="mobile-menu-btn" class="md:hidden p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-white/5 transition-colors">
+                    <svg id="menu-icon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                    <svg id="close-icon" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- 移动端菜单 -->
+        <div id="mobile-menu" class="mobile-menu md:hidden nav-glass border-t border-white/5">
+            <div class="px-4 py-4 space-y-3">
+                <a href="#features" class="block py-2.5 px-4 text-text-secondary hover:text-text-primary hover:bg-white/5 rounded-lg transition-colors text-sm font-medium">特性</a>
+                <a href="#architecture" class="block py-2.5 px-4 text-text-secondary hover:text-text-primary hover:bg-white/5 rounded-lg transition-colors text-sm font-medium">架构</a>
+                <a href="#memory" class="block py-2.5 px-4 text-text-secondary hover:text-text-primary hover:bg-white/5 rounded-lg transition-colors text-sm font-medium">记忆系统</a>
+                <a href="#workflow" class="block py-2.5 px-4 text-text-secondary hover:text-text-primary hover:bg-white/5 rounded-lg transition-colors text-sm font-medium">工作流</a>
+                <a href="#screenshots" class="block py-2.5 px-4 text-primary hover:text-primary-hover hover:bg-primary/5 rounded-lg transition-colors text-sm font-medium">演示</a>
+                <a href="https://github.com/Yourdaylight/world-novel" target="_blank" rel="noopener noreferrer"
+                   class="flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-semibold text-text-primary bg-dark-700 hover:bg-dark-600 rounded-lg transition-colors mt-2 border border-white/10">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+                    </svg>
+                    GitHub
+                </a>
+            </div>
+        </div>
+    </nav>
+
+
+    <!-- ===== Hero 区域 ===== -->
+    <section id="hero" class="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+        <!-- 背景光晕 -->
+        <div class="hero-glow hero-glow-1"></div>
+        <div class="hero-glow hero-glow-2"></div>
+        <div class="hero-glow hero-glow-3"></div>
+
+        <!-- 粒子画布 -->
+        <canvas id="particle-canvas"></canvas>
+
+        <!-- 脉冲装饰 -->
+        <div class="pulse-ring" style="top: 20%; left: 15%;"></div>
+        <div class="pulse-ring" style="top: 60%; right: 10%; animation-delay: 1.5s;"></div>
+
+        <!-- 内容 -->
+        <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+            <!-- 标签 -->
+            <div class="reveal mb-6">
+                <span class="badge badge-primary">
+                    <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    开源项目
+                </span>
+            </div>
+
+            <!-- 主标题 -->
+            <h1 class="reveal reveal-delay-1 text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[1.05] mb-6">
+                让 AI 角色
+                <br>
+                <span class="text-gradient">自主演绎世界</span>
+            </h1>
+
+            <!-- 副标题 -->
+            <p class="reveal reveal-delay-2 text-lg sm:text-xl md:text-2xl text-text-secondary max-w-3xl mx-auto mb-10 leading-relaxed font-light">
+                world-novel 是一个多 Agent 协作的长篇小说自动生成系统。
+                <br class="hidden sm:block">
+                每个角色拥有独立意识、记忆与情感，在 AI 驱动的世界中自由生长。
+            </p>
+
+            <!-- CTA 按钮 -->
+            <div class="reveal reveal-delay-3 flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
+                <a href="https://github.com/Yourdaylight/world-novel" target="_blank" rel="noopener noreferrer"
+                   class="btn-glow flex items-center gap-2.5 px-8 py-4 bg-primary hover:bg-primary-hover text-white text-base font-bold rounded-xl transition-all duration-300 shadow-lg shadow-primary/25 hover:shadow-primary/40">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+                    </svg>
+                    在 GitHub 上 Star
+                </a>
+                <a href="#features"
+                   class="flex items-center gap-2 px-8 py-4 bg-dark-700 hover:bg-dark-600 text-text-primary text-base font-semibold rounded-xl border border-white/10 hover:border-primary/30 transition-all duration-300">
+                    探索特性
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </a>
+            </div>
+
+            <!-- 核心数据展示 -->
+            <div class="reveal reveal-delay-4 max-w-4xl mx-auto">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="feature-card rounded-2xl p-6 text-center">
+                        <div class="text-3xl sm:text-4xl font-black text-gradient mb-2">7</div>
+                        <div class="text-sm text-text-secondary">阶段流水线</div>
+                        <div class="text-xs text-text-muted mt-1">导演 → 世界 → 伏笔 → 场景 → 写作 → 裁决 → 成书</div>
+                    </div>
+                    <div class="feature-card rounded-2xl p-6 text-center">
+                        <div class="text-3xl sm:text-4xl font-black text-gradient mb-2">N</div>
+                        <div class="text-sm text-text-secondary">独立Agent</div>
+                        <div class="text-xs text-text-muted mt-1">每个角色拥有独立记忆、情感与行动逻辑</div>
+                    </div>
+                    <div class="feature-card rounded-2xl p-6 text-center">
+                        <div class="text-3xl sm:text-4xl font-black text-gradient mb-2">3</div>
+                        <div class="text-sm text-text-secondary">终极命题</div>
+                        <div class="text-xs text-text-muted mt-1">是什么 / 从何来 / 往何去 定义世界本质</div>
+                    </div>
+                    <div class="feature-card rounded-2xl p-6 text-center">
+                        <div class="text-3xl sm:text-4xl font-black text-gradient mb-2">1</div>
+                        <div class="text-sm text-text-secondary">键成书</div>
+                        <div class="text-xs text-text-muted mt-1">Markdown/JSON 导出，随时暂停继续</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 滚动提示 -->
+            <div class="reveal reveal-delay-5 mt-16 flex flex-col items-center gap-2 opacity-50">
+                <span class="text-xs text-text-muted">向下滚动探索更多</span>
+                <svg class="w-5 h-5 text-text-muted animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+                </svg>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 分隔线 ===== -->
+    <div class="max-w-4xl mx-auto px-4">
+        <div class="divider-gradient"></div>
+    </div>
+
+
+    <!-- ===== 核心特性区域 ===== -->
+    <section id="features" class="relative py-24 sm:py-32 overflow-hidden">
+        <!-- 背景装饰 -->
+        <div class="section-glow" style="background: rgba(249, 115, 22, 0.04); top: -200px; left: -200px;"></div>
+
+        <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- 区域标题 -->
+            <div class="text-center mb-16 sm:mb-20 reveal">
+                <span class="badge badge-primary mb-4">核心特性</span>
+                <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-5">
+                    构建真实的<span class="text-gradient">文学世界</span>
+                </h2>
+                <p class="text-lg text-text-secondary max-w-2xl mx-auto">
+                    每个组件都经过精心设计，让 AI 角色拥有真实的独立意识和情感
+                </p>
+            </div>
+
+            <!-- 特性卡片网格 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+                <!-- 特性 1: 独立Agent意识 -->
+                <div class="feature-card rounded-2xl p-6 sm:p-7 reveal reveal-delay-1" onmousemove="handleCardMouseMove(event, this)" onmouseleave="handleCardMouseLeave(this)">
+                    <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-5">
+                        <span class="text-2xl">🎭</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-text-primary mb-2.5">独立 Agent 意识</h3>
+                    <p class="text-sm text-text-secondary leading-relaxed">
+                        每个角色拥有独立思考、对话、行动与反应的能力。情景记忆系统让角色记住每一次交互，情感状态驱动其行为决策，创造出具有真实个性的虚拟生命。
+                    </p>
+                    <div class="mt-5 flex flex-wrap gap-2">
+                        <span class="text-xs px-2.5 py-1 rounded-md bg-dark-600/50 text-text-muted">情景记忆</span>
+                        <span class="text-xs px-2.5 py-1 rounded-md bg-dark-600/50 text-text-muted">情感状态</span>
+                        <span class="text-xs px-2.5 py-1 rounded-md bg-dark-600/50 text-text-muted">自主决策</span>
+                    </div>
+                </div>
+
+                <!-- 特性 2: 史官对话 -->
+                <div class="feature-card rounded-2xl p-6 sm:p-7 reveal reveal-delay-2" onmousemove="handleCardMouseMove(event, this)" onmouseleave="handleCardMouseLeave(this)">
+                    <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-5">
+                        <span class="text-2xl">📜</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-text-primary mb-2.5">史官对话</h3>
+                    <p class="text-sm text-text-secondary leading-relaxed">
+                        与掌握全部角色记忆的 AI 史官对话，随时指导故事走向、分析剧情发展。史官了解每个角色的内心世界，是你创作旅程中最可靠的参谋。
+                    </p>
+                    <div class="mt-5 flex flex-wrap gap-2">
+                        <span class="text-xs px-2.5 py-1 rounded-md bg-dark-600/50 text-text-muted">全局记忆</span>
+                        <span class="text-xs px-2.5 py-1 rounded-md bg-dark-600/50 text-text-muted">剧情分析</span>
+                        <span class="text-xs px-2.5 py-1 rounded-md bg-dark-600/50 text-text-muted">创作指导</span>
+                    </div>
+                </div>
+
+                <!-- 特性 3: 命运裁决 -->
+                <div class="feature-card rounded-2xl p-6 sm:p-7 reveal reveal-delay-3" onmousemove="handleCardMouseMove(event, this)" onmouseleave="handleCardMouseLeave(this)">
+                    <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-5">
+                        <span class="text-2xl">🔮</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-text-primary mb-2.5">命运裁决</h3>
+                    <p class="text-sm text-text-secondary leading-relaxed">
+                        God Agent 在章节间审视整个世界走向，根据故事发展触发世界事件。自然灾害、政治变革、命运交织——让故事充满不可预测的戏剧张力。
+                    </p>
+                    <div class="mt-5 flex flex-wrap gap-2">
+                        <span class="text-xs px-2.5 py-1 rounded-md bg-dark-600/50 text-text-muted">世界事件</span>
+                        <span class="text-xs px-2.5 py-1 rounded-md bg-dark-600/50 text-text-muted">章节审视</span>
+                        <span class="text-xs px-2.5 py-1 rounded-md bg-dark-600/50 text-text-muted">动态走向</span>
+                    </div>
+                </div>
+
+                <!-- 特性 4: 伏笔系统 -->
+                <div class="feature-card rounded-2xl p-6 sm:p-7 reveal reveal-delay-4" onmousemove="handleCardMouseMove(event, this)" onmouseleave="handleCardMouseLeave(this)">
+                    <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-5">
+                        <span class="text-2xl">📊</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-text-primary mb-2.5">伏笔系统</h3>
+                    <p class="text-sm text-text-secondary leading-relaxed">
+                        自动规划伏笔的埋设与回收，跨章节追踪剧情线索。系统智能地在适当的位置埋下线索，并在最合适的时机揭示真相，打造精心编织的故事网。
+                    </p>
+                    <div class="mt-5 flex flex-wrap gap-2">
+                        <span class="text-xs px-2.5 py-1 rounded-md bg-dark-600/50 text-text-muted">自动规划</span>
+                        <span class="text-xs px-2.5 py-1 rounded-md bg-dark-600/50 text-text-muted">跨章追踪</span>
+                        <span class="text-xs px-2.5 py-1 rounded-md bg-dark-600/50 text-text-muted">线索回收</span>
+                    </div>
+                </div>
+
+                <!-- 特性 5: 三命题创世 -->
+                <div class="feature-card rounded-2xl p-6 sm:p-7 reveal reveal-delay-5" onmousemove="handleCardMouseMove(event, this)" onmouseleave="handleCardMouseLeave(this)">
+                    <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-5">
+                        <span class="text-2xl">🌍</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-text-primary mb-2.5">三命题创世</h3>
+                    <p class="text-sm text-text-secondary leading-relaxed">
+                        通过「是什么」「从何来」「往何去」三个哲学命题定义世界本质。这三个根本问题决定了世界的规则、历史轨迹和最终命运，是一切故事的基石。
+                    </p>
+                    <div class="mt-5 flex flex-wrap gap-2">
+                        <span class="text-xs px-2.5 py-1 rounded-md bg-dark-600/50 text-text-muted">世界定义</span>
+                        <span class="text-xs px-2.5 py-1 rounded-md bg-dark-600/50 text-text-muted">规则引擎</span>
+                        <span class="text-xs px-2.5 py-1 rounded-md bg-dark-600/50 text-text-muted">哲学基石</span>
+                    </div>
+                </div>
+
+                <!-- 特性 6: 成书导出 -->
+                <div class="feature-card rounded-2xl p-6 sm:p-7 reveal reveal-delay-6" onmousemove="handleCardMouseMove(event, this)" onmouseleave="handleCardMouseLeave(this)">
+                    <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-5">
+                        <span class="text-2xl">📥</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-text-primary mb-2.5">成书导出</h3>
+                    <p class="text-sm text-text-secondary leading-relaxed">
+                        一键将生成的小说导出为 Markdown 或 JSON 格式。完整的章节结构、角色对话、场景描述，全部整理成整洁的文档，方便后续编辑和发布。
+                    </p>
+                    <div class="mt-5 flex flex-wrap gap-2">
+                        <span class="text-xs px-2.5 py-1 rounded-md bg-dark-600/50 text-text-muted">Markdown</span>
+                        <span class="text-xs px-2.5 py-1 rounded-md bg-dark-600/50 text-text-muted">JSON</span>
+                        <span class="text-xs px-2.5 py-1 rounded-md bg-dark-600/50 text-text-muted">一键导出</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 额外特性行 -->
+            <div class="mt-5 sm:mt-6 grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+                <!-- 暂停/继续 -->
+                <div class="feature-card rounded-2xl p-6 sm:p-7 reveal" onmousemove="handleCardMouseMove(event, this)" onmouseleave="handleCardMouseLeave(this)">
+                    <div class="flex items-start gap-5">
+                        <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <span class="text-2xl">⏸</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-text-primary mb-2">随时暂停与修改</h3>
+                            <p class="text-sm text-text-secondary leading-relaxed">
+                                生成过程中随时暂停，修改角色设定、调整世界规则或重写剧情走向，然后继续生成。创作控制权始终在你手中。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 多模型支持 -->
+                <div class="feature-card rounded-2xl p-6 sm:p-7 reveal reveal-delay-1" onmousemove="handleCardMouseMove(event, this)" onmouseleave="handleCardMouseLeave(this)">
+                    <div class="flex items-start gap-5">
+                        <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <span class="text-2xl">⚡</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-text-primary mb-2">多模型后端支持</h3>
+                            <p class="text-sm text-text-secondary leading-relaxed">
+                                兼容 OpenAI、Anthropic、本地模型等多种 LLM 后端。灵活切换模型，在不同成本和性能之间找到最佳平衡点。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ===== 分隔线 ===== -->
+    <div class="max-w-4xl mx-auto px-4">
+        <div class="divider-gradient"></div>
+    </div>
+
+
+    <!-- ===== 技术架构区域 ===== -->
+    <section id="architecture" class="relative py-24 sm:py-32 overflow-hidden">
+        <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- 区域标题 -->
+            <div class="text-center mb-16 sm:mb-20 reveal">
+                <span class="badge badge-primary mb-4">技术架构</span>
+                <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-5">
+                    七阶段<span class="text-gradient">生成流水线</span>
+                </h2>
+                <p class="text-lg text-text-secondary max-w-2xl mx-auto">
+                    从创世命题到最终成书，每个阶段都精心设计以确保故事的质量与连贯性
+                </p>
+            </div>
+
+            <!-- 流水线展示 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+                <!-- 阶段 1 -->
+                <div class="arch-card rounded-xl p-5 sm:p-6 reveal pipeline-connector">
+                    <div class="step-number mb-3">01</div>
+                    <h4 class="text-base font-bold text-text-primary mb-2">世界初始化</h4>
+                    <p class="text-sm text-text-secondary leading-relaxed">
+                        基于三命题创建设定，生成地理、历史、文化、种族等世界基础架构
+                    </p>
+                    <div class="mt-4 flex items-center gap-2 text-primary">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/>
+                        </svg>
+                        <span class="text-xs font-medium">创世引擎</span>
+                    </div>
+                </div>
+
+                <!-- 阶段 2 -->
+                <div class="arch-card rounded-xl p-5 sm:p-6 reveal reveal-delay-1 pipeline-connector">
+                    <div class="step-number mb-3">02</div>
+                    <h4 class="text-base font-bold text-text-primary mb-2">角色生成</h4>
+                    <p class="text-sm text-text-secondary leading-relaxed">
+                        创建具有独立人格、背景故事、动机和关系的 AI Agent 角色群
+                    </p>
+                    <div class="mt-4 flex items-center gap-2 text-primary">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                        </svg>
+                        <span class="text-xs font-medium">Agent 工厂</span>
+                    </div>
+                </div>
+
+                <!-- 阶段 3 -->
+                <div class="arch-card rounded-xl p-5 sm:p-6 reveal reveal-delay-2 pipeline-connector">
+                    <div class="step-number mb-3">03</div>
+                    <h4 class="text-base font-bold text-text-primary mb-2">大纲编排</h4>
+                    <p class="text-sm text-text-secondary leading-relaxed">
+                        智能规划故事主线、支线与伏笔网络，构建章节级别的叙事蓝图
+                    </p>
+                    <div class="mt-4 flex items-center gap-2 text-primary">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                        <span class="text-xs font-medium">叙事规划器</span>
+                    </div>
+                </div>
+
+                <!-- 阶段 4 -->
+                <div class="arch-card rounded-xl p-5 sm:p-6 reveal reveal-delay-3">
+                    <div class="step-number mb-3">04</div>
+                    <h4 class="text-base font-bold text-text-primary mb-2">自由演绎</h4>
+                    <p class="text-sm text-text-secondary leading-relaxed">
+                        角色 Agent 基于各自记忆和情感自主对话与行动，产生真实交互
+                    </p>
+                    <div class="mt-4 flex items-center gap-2 text-primary">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                        </svg>
+                        <span class="text-xs font-medium">角色剧场</span>
+                    </div>
+                </div>
+
+                <!-- 阶段 5 -->
+                <div class="arch-card rounded-xl p-5 sm:p-6 reveal pipeline-connector">
+                    <div class="step-number mb-3">05</div>
+                    <h4 class="text-base font-bold text-text-primary mb-2">史官审阅</h4>
+                    <p class="text-sm text-text-secondary leading-relaxed">
+                        AI 史官综合全部角色记忆，将交互编织成连贯的叙事章节
+                    </p>
+                    <div class="mt-4 flex items-center gap-2 text-primary">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                        </svg>
+                        <span class="text-xs font-medium">叙事编织器</span>
+                    </div>
+                </div>
+
+                <!-- 阶段 6 -->
+                <div class="arch-card rounded-xl p-5 sm:p-6 reveal reveal-delay-1 pipeline-connector">
+                    <div class="step-number mb-3">06</div>
+                    <h4 class="text-base font-bold text-text-primary mb-2">命运裁决</h4>
+                    <p class="text-sm text-text-secondary leading-relaxed">
+                        God Agent 审视世界走向，触发重大事件确保故事的戏剧张力
+                    </p>
+                    <div class="mt-4 flex items-center gap-2 text-primary">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                        <span class="text-xs font-medium">事件引擎</span>
+                    </div>
+                </div>
+
+                <!-- 阶段 7 -->
+                <div class="arch-card rounded-xl p-5 sm:p-6 reveal reveal-delay-2 pipeline-connector lg:col-span-2">
+                    <div class="step-number mb-3">07</div>
+                    <h4 class="text-base font-bold text-text-primary mb-2">成书与导出</h4>
+                    <p class="text-sm text-text-secondary leading-relaxed">
+                        将生成的内容整理为完整的小说章节，支持 Markdown / JSON 格式导出，方便后续编辑和发布
+                    </p>
+                    <div class="mt-4 flex items-center gap-2 text-primary">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                        <span class="text-xs font-medium">导出引擎</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ===== 分隔线 ===== -->
+    <div class="max-w-4xl mx-auto px-4">
+        <div class="divider-gradient"></div>
+    </div>
+
+
+    <!-- ===== 记忆系统亮点区域 ===== -->
+    <section id="memory" class="relative py-24 sm:py-32 overflow-hidden">
+        <!-- 背景装饰 -->
+        <div class="section-glow" style="background: rgba(249, 115, 22, 0.03); top: 50%; right: -300px; transform: translateY(-50%);"></div>
+
+        <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- 区域标题 -->
+            <div class="text-center mb-16 sm:mb-20 reveal">
+                <span class="badge badge-primary mb-4">记忆系统</span>
+                <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-5">
+                    角色<span class="text-gradient">真正记得</span>一切
+                </h2>
+                <p class="text-lg text-text-secondary max-w-2xl mx-auto">
+                    多层次记忆架构让每个角色拥有完整的过去，驱动真实的情感与决策
+                </p>
+            </div>
+
+            <!-- 记忆层次展示 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-10 items-center">
+                <!-- 左侧：图示 -->
+                <div class="reveal">
+                    <div class="relative">
+                        <!-- 记忆层次图 -->
+                        <div class="space-y-4">
+                            <!-- 情景记忆 -->
+                            <div class="group relative bg-gradient-to-r from-dark-800 to-dark-700 border border-white/6 rounded-xl p-5 hover:border-primary/20 transition-all duration-300">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center flex-shrink-0">
+                                        <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="flex-1">
+                                        <h4 class="text-base font-bold text-text-primary mb-1">情景记忆</h4>
+                                        <p class="text-sm text-text-secondary">记录每一次对话、每一个场景，角色记得自己说过什么、经历了什么</p>
+                                    </div>
+                                </div>
+                                <!-- 连接线 -->
+                                <div class="hidden lg:block absolute -bottom-4 left-8 w-0.5 h-4 bg-gradient-to-b from-primary/30 to-transparent"></div>
+                            </div>
+
+                            <!-- 情感记忆 -->
+                            <div class="group relative bg-gradient-to-r from-dark-800 to-dark-700 border border-white/6 rounded-xl p-5 hover:border-primary/20 transition-all duration-300 ml-0 lg:ml-6">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center flex-shrink-0">
+                                        <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="flex-1">
+                                        <h4 class="text-base font-bold text-text-primary mb-1">情感记忆</h4>
+                                        <p class="text-sm text-text-secondary">记录角色对其他角色的情感变化，喜欢、憎恨、信任、怀疑——一切都有迹可循</p>
+                                    </div>
+                                </div>
+                                <div class="hidden lg:block absolute -bottom-4 left-8 w-0.5 h-4 bg-gradient-to-b from-primary/30 to-transparent"></div>
+                            </div>
+
+                            <!-- 世界记忆 -->
+                            <div class="group relative bg-gradient-to-r from-dark-800 to-dark-700 border border-white/6 rounded-xl p-5 hover:border-primary/20 transition-all duration-300 ml-0 lg:ml-12">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center flex-shrink-0">
+                                        <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/>
+                                        </svg>
+                                    </div>
+                                    <div class="flex-1">
+                                        <h4 class="text-base font-bold text-text-primary mb-1">世界记忆</h4>
+                                        <p class="text-sm text-text-secondary">记录世界大事、地理发现、历史变迁，角色共享同一世界认知</p>
+                                    </div>
+                                </div>
+                                <div class="hidden lg:block absolute -bottom-4 left-8 w-0.5 h-4 bg-gradient-to-b from-primary/30 to-transparent"></div>
+                            </div>
+
+                            <!-- 伏笔记忆 -->
+                            <div class="group relative bg-gradient-to-r from-dark-800 to-dark-700 border border-primary/20 rounded-xl p-5 ml-0 lg:ml-18 shadow-lg shadow-primary/5">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
+                                        <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                        </svg>
+                                    </div>
+                                    <div class="flex-1">
+                                        <h4 class="text-base font-bold text-primary mb-1">伏笔追踪</h4>
+                                        <p class="text-sm text-text-secondary">系统层面追踪所有伏笔的埋设与回收状态，确保每个线索都有归宿</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧：说明 -->
+                <div class="reveal reveal-delay-2 space-y-8">
+                    <div>
+                        <h3 class="text-2xl sm:text-3xl font-bold text-text-primary mb-4">
+                            记忆不是数据库，<br><span class="text-gradient">是角色的灵魂</span>
+                        </h3>
+                        <p class="text-text-secondary leading-relaxed mb-6">
+                            world-novel 的记忆系统模拟人类记忆的工作方式——不是冷冰冰的数据检索，而是与情感、情境紧密相连的回忆。当一个角色再次遇到曾经背叛过他的人时，系统会自动唤起那段记忆，并影响角色的情感状态和对话选择。
+                        </p>
+                    </div>
+
+                    <!-- 记忆特性列表 -->
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-3">
+                            <div class="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <svg class="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-semibold text-text-primary">记忆衰减与强化</h4>
+                                <p class="text-sm text-text-muted">重要记忆被强化存储，次要记忆随时间自然淡化</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-3">
+                            <div class="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <svg class="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-semibold text-text-primary">情感关联检索</h4>
+                                <p class="text-sm text-text-muted">相似情感场景触发相关记忆，让回忆更加自然</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-3">
+                            <div class="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <svg class="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-semibold text-text-primary">跨章记忆持久化</h4>
+                                <p class="text-sm text-text-muted">角色记忆跨章节保持一致，故事连贯性得到保证</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ===== 分隔线 ===== -->
+    <div class="max-w-4xl mx-auto px-4">
+        <div class="divider-gradient"></div>
+    </div>
+
+
+    <!-- ===== 工作流区域 ===== -->
+    <section id="workflow" class="relative py-24 sm:py-32 overflow-hidden">
+        <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- 区域标题 -->
+            <div class="text-center mb-16 sm:mb-20 reveal">
+                <span class="badge badge-primary mb-4">使用流程</span>
+                <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-5">
+                    三步开启<span class="text-gradient">创世之旅</span>
+                </h2>
+                <p class="text-lg text-text-secondary max-w-2xl mx-auto">
+                    无需复杂配置，从世界设定到小说生成，简洁直观
+                </p>
+            </div>
+
+            <!-- 三步卡片 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+                <!-- 步骤 1 -->
+                <div class="reveal reveal-delay-1 text-center">
+                    <div class="relative inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 mb-6">
+                        <span class="text-3xl font-black text-primary">1</span>
+                        <div class="hidden md:block absolute -right-8 top-1/2 transform -translate-y-1/2 translate-x-full">
+                            <svg class="w-8 h-8 text-primary/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-bold text-text-primary mb-3">定义世界</h3>
+                    <p class="text-sm text-text-secondary leading-relaxed">
+                        通过「三命题创世」定义你的世界——是什么、从何来、往何去。设定世界观、种族、魔法体系等核心规则。
+                    </p>
+                </div>
+
+                <!-- 步骤 2 -->
+                <div class="reveal reveal-delay-2 text-center">
+                    <div class="relative inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 mb-6">
+                        <span class="text-3xl font-black text-primary">2</span>
+                        <div class="hidden md:block absolute -right-8 top-1/2 transform -translate-y-1/2 translate-x-full">
+                            <svg class="w-8 h-8 text-primary/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-bold text-text-primary mb-3">生成与引导</h3>
+                    <p class="text-sm text-text-secondary leading-relaxed">
+                        启动生成引擎，观察角色自主演绎。随时暂停，与史官对话调整方向，让故事朝着你期望的方向发展。
+                    </p>
+                </div>
+
+                <!-- 步骤 3 -->
+                <div class="reveal reveal-delay-3 text-center">
+                    <div class="relative inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 mb-6">
+                        <span class="text-3xl font-black text-primary">3</span>
+                    </div>
+                    <h3 class="text-xl font-bold text-text-primary mb-3">导出成书</h3>
+                    <p class="text-sm text-text-secondary leading-relaxed">
+                        一键导出完整的小说文件，Markdown 格式便于编辑排版，JSON 格式方便二次开发和技术处理。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ===== 产品截图展示区 ===== -->
+    <section id="screenshots" class="relative py-24 sm:py-32 overflow-hidden">
+        <div class="section-glow" style="background: rgba(249, 115, 22, 0.03); top: 50%; left: -300px; transform: translateY(-50%);"></div>
+        <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- 区域标题 -->
+            <div class="text-center mb-16 sm:mb-20 reveal">
+                <span class="badge badge-primary mb-4">产品演示</span>
+                <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-5">
+                    直观的<span class="text-gradient">Web 仪表板</span>
+                </h2>
+                <p class="text-lg text-text-secondary max-w-2xl mx-auto">
+                    从世界设定到章节生成，全流程可视化操控
+                </p>
+            </div>
+
+            <!-- 标签切换 -->
+            <div class="flex flex-wrap justify-center gap-3 mb-10 reveal" id="screenshot-tabs">
+                <button class="screenshot-tab active px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 border border-primary/50 bg-primary/10 text-primary" data-tab="home">首页书架</button>
+                <button class="screenshot-tab px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 border border-white/10 bg-white/5 text-text-secondary hover:border-primary/30 hover:text-primary" data-tab="dashboard">概览面板</button>
+                <button class="screenshot-tab px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 border border-white/10 bg-white/5 text-text-secondary hover:border-primary/30 hover:text-primary" data-tab="create">创世向导</button>
+                <button class="screenshot-tab px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 border border-white/10 bg-white/5 text-text-secondary hover:border-primary/30 hover:text-primary" data-tab="characters">角色图谱</button>
+                <button class="screenshot-tab px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 border border-white/10 bg-white/5 text-text-secondary hover:border-primary/30 hover:text-primary" data-tab="chapters">章节阅读</button>
+                <button class="screenshot-tab px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 border border-white/10 bg-white/5 text-text-secondary hover:border-primary/30 hover:text-primary" data-tab="historian">史官对话</button>
+                <button class="screenshot-tab px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 border border-white/10 bg-white/5 text-text-secondary hover:border-primary/30 hover:text-primary" data-tab="control">控制台</button>
+            </div>
+
+            <!-- 截图内容 -->
+            <div class="screenshot-content reveal">
+                <!-- 首页 -->
+                <div class="screenshot-panel active" data-panel="home">
+                    <div class="relative rounded-2xl overflow-hidden border border-white/10 bg-dark-800/50 shadow-2xl shadow-primary/5">
+                        <div class="absolute top-0 left-0 right-0 h-8 bg-dark-800/80 flex items-center px-4 gap-2 border-b border-white/5">
+                            <div class="w-3 h-3 rounded-full bg-red-500/60"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500/60"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500/60"></div>
+                            <span class="ml-3 text-xs text-text-muted font-mono">world-novel - 首页</span>
+                        </div>
+                        <img src="images/final-home.png" alt="world-novel 首页书架" class="w-full pt-8 object-cover" loading="lazy">
+                    </div>
+                    <p class="text-center text-text-secondary mt-4 text-sm">首页书架 - 管理你的所有小说世界</p>
+                </div>
+
+                <!-- 概览 -->
+                <div class="screenshot-panel hidden" data-panel="dashboard">
+                    <div class="relative rounded-2xl overflow-hidden border border-white/10 bg-dark-800/50 shadow-2xl shadow-primary/5">
+                        <div class="absolute top-0 left-0 right-0 h-8 bg-dark-800/80 flex items-center px-4 gap-2 border-b border-white/5">
+                            <div class="w-3 h-3 rounded-full bg-red-500/60"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500/60"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500/60"></div>
+                            <span class="ml-3 text-xs text-text-muted font-mono">world-novel - 概览面板</span>
+                        </div>
+                        <img src="images/final-dashboard.png" alt="world-novel 概览面板" class="w-full pt-8 object-cover" loading="lazy">
+                    </div>
+                    <p class="text-center text-text-secondary mt-4 text-sm">概览面板 - 三命题展示、生成控制、实时统计</p>
+                </div>
+
+                <!-- 创建世界 -->
+                <div class="screenshot-panel hidden" data-panel="create">
+                    <div class="relative rounded-2xl overflow-hidden border border-white/10 bg-dark-800/50 shadow-2xl shadow-primary/5">
+                        <div class="absolute top-0 left-0 right-0 h-8 bg-dark-800/80 flex items-center px-4 gap-2 border-b border-white/5">
+                            <div class="w-3 h-3 rounded-full bg-red-500/60"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500/60"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500/60"></div>
+                            <span class="ml-3 text-xs text-text-muted font-mono">world-novel - 创世向导</span>
+                        </div>
+                        <img src="images/create-step1.png" alt="world-novel 创建世界" class="w-full pt-8 object-cover" loading="lazy">
+                    </div>
+                    <p class="text-center text-text-secondary mt-4 text-sm">创世向导 - 通过三步定义你的世界本质</p>
+                </div>
+
+                <!-- 角色 -->
+                <div class="screenshot-panel hidden" data-panel="characters">
+                    <div class="relative rounded-2xl overflow-hidden border border-white/10 bg-dark-800/50 shadow-2xl shadow-primary/5">
+                        <div class="absolute top-0 left-0 right-0 h-8 bg-dark-800/80 flex items-center px-4 gap-2 border-b border-white/5">
+                            <div class="w-3 h-3 rounded-full bg-red-500/60"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500/60"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500/60"></div>
+                            <span class="ml-3 text-xs text-text-muted font-mono">world-novel - 角色图谱</span>
+                        </div>
+                        <img src="images/final-characters.png" alt="world-novel 角色与关系" class="w-full pt-8 object-cover" loading="lazy">
+                    </div>
+                    <p class="text-center text-text-secondary mt-4 text-sm">角色系统 - 关系图谱与角色档案一览</p>
+                </div>
+
+                <!-- 章节 -->
+                <div class="screenshot-panel hidden" data-panel="chapters">
+                    <div class="relative rounded-2xl overflow-hidden border border-white/10 bg-dark-800/50 shadow-2xl shadow-primary/5">
+                        <div class="absolute top-0 left-0 right-0 h-8 bg-dark-800/80 flex items-center px-4 gap-2 border-b border-white/5">
+                            <div class="w-3 h-3 rounded-full bg-red-500/60"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500/60"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500/60"></div>
+                            <span class="ml-3 text-xs text-text-muted font-mono">world-novel - 章节阅读</span>
+                        </div>
+                        <img src="images/final-chapters.png" alt="world-novel 章节阅读" class="w-full pt-8 object-cover" loading="lazy">
+                    </div>
+                    <p class="text-center text-text-secondary mt-4 text-sm">章节阅读 - 逐章查看AI生成的完整叙事</p>
+                </div>
+
+                <!-- 史官 -->
+                <div class="screenshot-panel hidden" data-panel="historian">
+                    <div class="relative rounded-2xl overflow-hidden border border-white/10 bg-dark-800/50 shadow-2xl shadow-primary/5">
+                        <div class="absolute top-0 left-0 right-0 h-8 bg-dark-800/80 flex items-center px-4 gap-2 border-b border-white/5">
+                            <div class="w-3 h-3 rounded-full bg-red-500/60"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500/60"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500/60"></div>
+                            <span class="ml-3 text-xs text-text-muted font-mono">world-novel - 史官对话</span>
+                        </div>
+                        <img src="images/final-historian.png" alt="world-novel 史官对话" class="w-full pt-8 object-cover" loading="lazy">
+                    </div>
+                    <p class="text-center text-text-secondary mt-4 text-sm">史官对话 - 与掌握全局的AI讨论剧情走向</p>
+                </div>
+
+                <!-- 控制台 -->
+                <div class="screenshot-panel hidden" data-panel="control">
+                    <div class="relative rounded-2xl overflow-hidden border border-white/10 bg-dark-800/50 shadow-2xl shadow-primary/5">
+                        <div class="absolute top-0 left-0 right-0 h-8 bg-dark-800/80 flex items-center px-4 gap-2 border-b border-white/5">
+                            <div class="w-3 h-3 rounded-full bg-red-500/60"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500/60"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500/60"></div>
+                            <span class="ml-3 text-xs text-text-muted font-mono">world-novel - 控制台</span>
+                        </div>
+                        <img src="images/final-control.png" alt="world-novel 控制台" class="w-full pt-8 object-cover" loading="lazy">
+                    </div>
+                    <p class="text-center text-text-secondary mt-4 text-sm">控制台 - 运行控制与检查点管理</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <style>
+        /* 截图面板切换 */
+        .screenshot-panel { display: none; animation: fadeIn 0.5s ease-out; }
+        .screenshot-panel.active { display: block; }
+        .screenshot-tab.active {
+            border-color: rgba(249, 115, 22, 0.5) !important;
+            background: rgba(249, 115, 22, 0.1) !important;
+            color: #f97316 !important;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+
+    <script>
+        // 截图标签切换
+        (function() {
+            const tabs = document.querySelectorAll('.screenshot-tab');
+            const panels = document.querySelectorAll('.screenshot-panel');
+            tabs.forEach(function(tab) {
+                tab.addEventListener('click', function() {
+                    var target = this.getAttribute('data-tab');
+                    tabs.forEach(function(t) {
+                        t.classList.remove('active');
+                        t.classList.add('text-text-secondary', 'border-white/10', 'bg-white/5');
+                        t.classList.remove('text-primary', 'border-primary/50', 'bg-primary/10');
+                    });
+                    this.classList.add('active');
+                    this.classList.remove('text-text-secondary', 'border-white/10', 'bg-white/5');
+                    panels.forEach(function(p) {
+                        p.classList.add('hidden');
+                        p.classList.remove('active');
+                    });
+                    var targetPanel = document.querySelector('.screenshot-panel[data-panel="' + target + '"]');
+                    if (targetPanel) {
+                        targetPanel.classList.remove('hidden');
+                        targetPanel.classList.add('active');
+                    }
+                });
+            });
+        })();
+    </script>
+
+
+    <!-- ===== CTA 区域 ===== -->
+    <section class="cta-gradient relative py-24 sm:py-32 overflow-hidden">
+        <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="reveal">
+                <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-6">
+                    准备好创造你的
+                    <br>
+                    <span class="text-gradient">文学世界了吗？</span>
+                </h2>
+                <p class="text-lg text-text-secondary mb-10 max-w-2xl mx-auto">
+                    world-novel 是开源项目，免费使用。每一个 Star 都是对开发者的最大鼓励，也是对项目未来的投资。
+                </p>
+
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <a href="https://github.com/Yourdaylight/world-novel" target="_blank" rel="noopener noreferrer"
+                       class="btn-glow flex items-center gap-2.5 px-8 py-4 bg-primary hover:bg-primary-hover text-white text-base font-bold rounded-xl transition-all duration-300 shadow-lg shadow-primary/25 hover:shadow-primary/40">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+                        </svg>
+                        在 GitHub 上 Star
+                    </a>
+                    <a href="https://github.com/Yourdaylight/world-novel" target="_blank" rel="noopener noreferrer"
+                       class="flex items-center gap-2 px-8 py-4 bg-dark-700 hover:bg-dark-600 text-text-primary text-base font-semibold rounded-xl border border-white/10 hover:border-primary/30 transition-all duration-300">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        阅读文档
+                    </a>
+                </div>
+
+                <!-- GitHub 统计 -->
+                <div class="mt-12 flex items-center justify-center gap-6 sm:gap-10">
+                    <div class="text-center">
+                        <div class="flex items-center gap-1.5 text-text-secondary mb-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+                            </svg>
+                            <span class="text-sm">开源项目</span>
+                        </div>
+                    </div>
+                    <div class="w-px h-8 bg-white/10"></div>
+                    <div class="text-center">
+                        <div class="flex items-center gap-1.5 text-text-secondary mb-1">
+                            <svg class="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                            <span class="text-sm">欢迎 Star</span>
+                        </div>
+                    </div>
+                    <div class="w-px h-8 bg-white/10"></div>
+                    <div class="text-center">
+                        <div class="flex items-center gap-1.5 text-text-secondary mb-1">
+                            <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span class="text-sm">免费使用</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ===== Footer ===== -->
+    <footer class="border-t border-white/5 bg-dark-900">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 sm:gap-12">
+                <!-- Logo 和简介 -->
+                <div class="md:col-span-2">
+                    <a href="#" class="flex items-center gap-3 mb-4">
+                        <svg class="w-8 h-8" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="40" height="40" rx="10" fill="url(#footer-logo-gradient)"/>
+                            <path d="M12 20C12 15.5817 15.5817 12 20 12C24.4183 12 28 15.5817 28 20" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                            <circle cx="20" cy="24" r="3" fill="white"/>
+                            <defs>
+                                <linearGradient id="footer-logo-gradient" x1="0" y1="0" x2="40" y2="40">
+                                    <stop stop-color="#f97316"/>
+                                    <stop offset="1" stop-color="#ea580c"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                        <span class="text-lg font-bold text-text-primary">world-novel</span>
+                    </a>
+                    <p class="text-sm text-text-secondary leading-relaxed max-w-sm mb-6">
+                        多 Agent 协作的长篇小说自动生成系统。让每个 AI 角色拥有独立意识，在虚拟世界中自由生长、演绎精彩故事。
+                    </p>
+                    <!-- 开源协议 -->
+                    <div class="flex items-center gap-2 text-xs text-text-muted">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                        <span>开源项目，遵循 MIT 协议</span>
+                    </div>
+                </div>
+
+                <!-- 链接列 -->
+                <div>
+                    <h4 class="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">项目</h4>
+                    <ul class="space-y-3">
+                        <li>
+                            <a href="https://github.com/Yourdaylight/world-novel" target="_blank" rel="noopener noreferrer" class="text-sm text-text-secondary hover:text-primary transition-colors">GitHub 仓库</a>
+                        </li>
+                        <li>
+                            <a href="https://github.com/Yourdaylight/world-novel#readme" target="_blank" rel="noopener noreferrer" class="text-sm text-text-secondary hover:text-primary transition-colors">使用文档</a>
+                        </li>
+                        <li>
+                            <a href="https://github.com/Yourdaylight/world-novel/issues" target="_blank" rel="noopener noreferrer" class="text-sm text-text-secondary hover:text-primary transition-colors">问题反馈</a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">社区</h4>
+                    <ul class="space-y-3">
+                        <li>
+                            <a href="https://github.com/Yourdaylight/world-novel/discussions" target="_blank" rel="noopener noreferrer" class="text-sm text-text-secondary hover:text-primary transition-colors">讨论区</a>
+                        </li>
+                        <li>
+                            <a href="https://github.com/Yourdaylight/world-novel/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" class="text-sm text-text-secondary hover:text-primary transition-colors">贡献指南</a>
+                        </li>
+                        <li>
+                            <a href="https://github.com/Yourdaylight/world-novel/releases" target="_blank" rel="noopener noreferrer" class="text-sm text-text-secondary hover:text-primary transition-colors">更新日志</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 底部版权 -->
+            <div class="mt-12 pt-8 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <p class="text-xs text-text-muted">
+                    world-novel — 开源 AI 小说生成系统
+                </p>
+                <p class="text-xs text-text-muted">
+                    使用 world-novel 构建 · 让 AI 角色自主演绎世界
+                </p>
+            </div>
+        </div>
+    </footer>
+
+
+    <!-- ===== JavaScript ===== -->
+    <script>
+        // ==================== 导航栏滚动效果 ====================
+        const navbar = document.getElementById('navbar');
+        let lastScrollY = 0;
+
+        function updateNavbar() {
+            const scrollY = window.scrollY;
+
+            if (scrollY > 50) {
+                navbar.classList.add('nav-glass');
+            } else {
+                navbar.classList.remove('nav-glass');
+            }
+
+            lastScrollY = scrollY;
+        }
+
+        window.addEventListener('scroll', updateNavbar, { passive: true });
+        updateNavbar();
+
+
+        // ==================== 移动端菜单 ====================
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const menuIcon = document.getElementById('menu-icon');
+        const closeIcon = document.getElementById('close-icon');
+        let menuOpen = false;
+
+        mobileMenuBtn.addEventListener('click', () => {
+            menuOpen = !menuOpen;
+            if (menuOpen) {
+                mobileMenu.classList.add('open');
+                menuIcon.classList.add('hidden');
+                closeIcon.classList.remove('hidden');
+            } else {
+                mobileMenu.classList.remove('open');
+                menuIcon.classList.remove('hidden');
+                closeIcon.classList.add('hidden');
+            }
+        });
+
+        // 点击导航链接后关闭菜单
+        document.querySelectorAll('#mobile-menu a').forEach(link => {
+            link.addEventListener('click', () => {
+                menuOpen = false;
+                mobileMenu.classList.remove('open');
+                menuIcon.classList.remove('hidden');
+                closeIcon.classList.add('hidden');
+            });
+        });
+
+
+        // ==================== 卡片鼠标跟随光效 ====================
+        function handleCardMouseMove(event, card) {
+            const rect = card.getBoundingClientRect();
+            const x = ((event.clientX - rect.left) / rect.width) * 100;
+            const y = ((event.clientY - rect.top) / rect.height) * 100;
+            card.style.setProperty('--mouse-x', x + '%');
+            card.style.setProperty('--mouse-y', y + '%');
+        }
+
+        function handleCardMouseLeave(card) {
+            card.style.setProperty('--mouse-x', '50%');
+            card.style.setProperty('--mouse-y', '50%');
+        }
+
+
+        // ==================== Intersection Observer 滚动动画 ====================
+        const revealElements = document.querySelectorAll('.reveal');
+
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    // 观察一次后停止，保持动画完成状态
+                    revealObserver.unobserve(entry.target);
+                }
+            });
+        }, {
+            root: null,
+            rootMargin: '0px 0px -50px 0px',
+            threshold: 0.1
+        });
+
+        revealElements.forEach(el => {
+            revealObserver.observe(el);
+        });
+
+
+        // ==================== Hero 区域粒子效果 ====================
+        (function initParticles() {
+            const canvas = document.getElementById('particle-canvas');
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+            let animationId;
+            let isVisible = true;
+
+            function resize() {
+                const hero = document.getElementById('hero');
+                if (hero) {
+                    canvas.width = hero.offsetWidth;
+                    canvas.height = hero.offsetHeight;
+                }
+            }
+
+            function createParticles() {
+                particles = [];
+                const count = Math.min(60, Math.floor((canvas.width * canvas.height) / 15000));
+
+                for (let i = 0; i < count; i++) {
+                    particles.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height,
+                        vx: (Math.random() - 0.5) * 0.4,
+                        vy: (Math.random() - 0.5) * 0.4,
+                        radius: Math.random() * 1.5 + 0.5,
+                        opacity: Math.random() * 0.4 + 0.1
+                    });
+                }
+            }
+
+            function draw() {
+                if (!isVisible) return;
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // 绘制粒子
+                particles.forEach(p => {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(249, 115, 22, ${p.opacity})`;
+                    ctx.fill();
+                });
+
+                // 绘制连线
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const dx = particles[i].x - particles[j].x;
+                        const dy = particles[i].y - particles[j].y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+
+                        if (dist < 150) {
+                            ctx.beginPath();
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.strokeStyle = `rgba(249, 115, 22, ${0.06 * (1 - dist / 150)})`;
+                            ctx.lineWidth = 0.5;
+                            ctx.stroke();
+                        }
+                    }
+                }
+            }
+
+            function update() {
+                particles.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+
+                    if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+                    if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+                    p.x = Math.max(0, Math.min(canvas.width, p.x));
+                    p.y = Math.max(0, Math.min(canvas.height, p.y));
+                });
+            }
+
+            function loop() {
+                update();
+                draw();
+                animationId = requestAnimationFrame(loop);
+            }
+
+            // 可见性检测
+            const heroObserver = new IntersectionObserver((entries) => {
+                isVisible = entries[0].isIntersecting;
+            }, { threshold: 0 });
+
+            const heroSection = document.getElementById('hero');
+            if (heroSection) {
+                heroObserver.observe(heroSection);
+            }
+
+            resize();
+            createParticles();
+            loop();
+
+            window.addEventListener('resize', () => {
+                resize();
+                createParticles();
+            });
+        })();
+
+
+        // ==================== 平滑滚动 ====================
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    const offsetTop = target.offsetTop - 80; // 减去导航栏高度
+                    window.scrollTo({
+                        top: offsetTop,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+
+        // ==================== Hero 元素初始动画 ====================
+        (function heroInitialAnimation() {
+            const heroReveals = document.querySelectorAll('#hero .reveal');
+            heroReveals.forEach((el, index) => {
+                setTimeout(() => {
+                    el.classList.add('visible');
+                }, 300 + index * 150);
+            });
+        })();
+    </script>
+</body>
+</html>
