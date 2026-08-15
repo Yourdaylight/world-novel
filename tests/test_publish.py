@@ -432,3 +432,12 @@ def test_volume_overlap_no_duplicate_chapters():
     # 重叠章节 2、3 归属第一个卷
     first_idx = [c["chapter_index"] for c in groups[0]["chapters"]]
     assert 2 in first_idx and 3 in first_idx
+
+
+def test_chapter_header_no_duplicate_number():
+    """空标题 / 标题即'第N章'时不产生'第N章 第N章'重复章号。"""
+    from novel_creator.web.publish.exporter import _chapter_header
+
+    assert _chapter_header({"chapter_index": 0, "title": ""}) == "第1章"
+    assert _chapter_header({"chapter_index": 0, "title": "第1章"}) == "第1章"
+    assert _chapter_header({"chapter_index": 2, "title": "风起"}) == "第3章 风起"

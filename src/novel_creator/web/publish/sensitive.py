@@ -20,10 +20,14 @@ def _load_words(path: Path) -> set[str]:
     words: set[str] = set()
     if not path.exists():
         return words
-    for line in path.read_text(encoding="utf-8").splitlines():
-        w = line.strip()
-        if w and not w.startswith("#"):
-            words.add(w)
+    try:
+        # 自定义词表编码不可控：容错读取，坏行跳过而不是让预检崩溃
+        for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+            w = line.strip()
+            if w and not w.startswith("#"):
+                words.add(w)
+    except OSError:
+        pass
     return words
 
 

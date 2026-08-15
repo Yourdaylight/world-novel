@@ -74,8 +74,12 @@ def build_intro(meta: dict) -> str:
 
 
 def _chapter_header(chapter: dict) -> str:
-    title = chapter["title"] or f"第{chapter['chapter_index'] + 1}章"
-    return f"第{chapter['chapter_index'] + 1}章 {title}"
+    num = f"第{chapter['chapter_index'] + 1}章"
+    title = (chapter["title"] or "").strip()
+    # 空标题或标题本身即"第N章"时，避免重复章号
+    if not title or title == num:
+        return num
+    return f"{num} {title}"
 
 
 def _group_by_volume(chapters: list[dict], volumes: list[dict]) -> list[dict]:
