@@ -79,7 +79,12 @@ def _chapter_header(chapter: dict) -> str:
 
 
 def _group_by_volume(chapters: list[dict], volumes: list[dict]) -> list[dict]:
-    """Return [{title, chapters:[...]}]; single pseudo-volume when no volumes."""
+    """Return [{title, chapters:[...]}]; single pseudo-volume when no volumes.
+
+    Each chapter belongs to at most one volume: when volume ranges overlap the
+    FIRST volume wins (prevents duplicate chapters in TXT / duplicate manifest
+    ids in EPUB). Chapters not covered by any volume go to a trailing group.
+    """
     if not volumes:
         return [{"title": "", "chapters": chapters}]
 
@@ -90,9 +95,10 @@ def _group_by_volume(chapters: list[dict], volumes: list[dict]) -> list[dict]:
             c
             for c in chapters
             if v["chapter_start"] <= c["chapter_index"] <= v["chapter_end"]
+            and c["chapter_index"] not in assigned
         ]
-        assigned.update(c["chapter_index"] for c in in_range)
         if in_range:
+            assigned.update(c["chapter_index"] for c in in_range)
             groups.append({"title": v["title"], "chapters": in_range})
     leftovers = [c for c in chapters if c["chapter_index"] not in assigned]
     if leftovers:

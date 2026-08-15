@@ -414,3 +414,21 @@ def test_confirm_l1_reserved_501():
     )
     assert resp.status_code == 501
     assert "L0" in resp.json()["detail"] or "手动" in resp.json()["detail"]
+
+
+def test_volume_overlap_no_duplicate_chapters():
+    """卷范围重叠时章节只归属第一个卷（防 TXT 重复 / EPUB 重复 manifest id）。"""
+    from novel_creator.web.publish.exporter import _group_by_volume
+
+    chapters = [{"chapter_index": i, "title": f"t{i}", "body": f"b{i}"} for i in range(6)]
+    volumes = [
+        {"volume_index": 0, "title": "卷一", "chapter_start": 0, "chapter_end": 3},
+        {"volume_index": 1, "title": "卷二", "chapter_start": 2, "chapter_end": 5},  # 与卷一重叠 2-3
+    ]
+    groups = _group_by_volume(chapters, volumes)
+    all_idx = [c["chapter_index"] for g in groups for c in g["chapters"]]
+    assert sorted(all_idx) == [0, 1, 2, 3, 4, 5], "章节总数不变"
+    assert len(all_idx) == len(set(all_idx)), "无重复章节"
+    # 重叠章节 2、3 归属第一个卷
+    first_idx = [c["chapter_index"] for c in groups[0]["chapters"]]
+    assert 2 in first_idx and 3 in first_idx
