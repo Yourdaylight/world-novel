@@ -1,39 +1,116 @@
-"""认证依赖模块 - 提供JWT认证和权限控制。"""
+"""Auth dependency injection — mode-configurable (JWT or Casdoor Sidecar).
+
+Active mode is driven by ``settings.auth_mode``:
+
+- ``jwt`` (default, open-source) — invite-code login issues a JWT
+  (python-jose, HS256); token-quota system gates generation.
+- ``casdoor`` — browser auth proxied to casdoor-auth-sidecar
+  (``POST /api/auth/verify``); session tokens verified via sidecar.
+- ``disabled`` — all routes open (dev/staging).
+
+``require_auth`` / ``optional_auth`` route strictly by mode — no cross-mode
+fallback. Legacy ``NOVEL_AUTH_ENABLED=true`` env maps to ``casdoor`` mode.
+"""
 
 from __future__ import annotations
 
+import logging
 import os
+from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
-from pydantic import BaseModel
 
 from novel_creator.config import settings
 from novel_creator.memory.database import get_connection
 from novel_creator.memory.quota_store import check_and_deduct_tokens
+from .sidecar_client import SidecarIdentity, get_sidecar
 
-# JWT配置
-_JWT_SECRET = os.environ.get("NOVEL_JWT_SECRET", "worldengine-dev-secret-change-in-production")
+logger = logging.getLogger("novel_creator.web.auth")
+
+# HTTP Bearer security scheme (for Authorization header)
+security = HTTPBearer(auto_error=False)
+
+# JWT 配置
+_JWT_SECRET = os.environ.get(
+    "WORLDENGINE_JWT_SECRET", "worldengine-dev-secret-change-in-production"
+)
 _JWT_ALGORITHM = "HS256"
 _JWT_EXPIRE_HOURS = 168  # 7天
 
-# 安全中间件
-security = HTTPBearer(auto_error=False)
 
+@dataclass
+class AuthUser:
+    """Authenticated user info.
 
-class AuthUser(BaseModel):
-    """认证用户信息。"""
-    code: str
+    JWT users carry ``code`` (invite code) and ``is_admin``.
+    Sidecar users carry sub/username/display_name/email/organization/token.
+    """
+
+    sub: str = ""            # Casdoor user ID (e.g., "JQ/username")
+    username: str = ""
+    display_name: str = ""
+    email: str = ""
+    organization: str = ""
+    token: str = ""          # sidecar session token / raw bearer
+    code: str = ""           # JWT user invite code
     is_admin: bool = False
+
+    @classmethod
+    def from_identity(cls, identity: SidecarIdentity, token: str) -> "AuthUser":
+        return cls(
+            sub=identity.sub,
+            username=identity.username,
+            display_name=identity.display_name,
+            email=identity.email,
+            organization=identity.organization,
+            token=token,
+            is_admin=_is_admin(identity),
+        )
+
+    @classmethod
+    def from_jwt(cls, code: str, is_admin: bool) -> "AuthUser":
+        return cls(code=code, is_admin=is_admin, username=code, sub=code)
 
 
 class QuotaCheckError(HTTPException):
     """额度不足异常。"""
+
     def __init__(self, detail: str = "Quota exceeded"):
         super().__init__(status_code=402, detail=detail)
+
+
+def _is_admin(identity: SidecarIdentity) -> bool:
+    """Admin detection: sub contains 'admin' or org is 'JQ' and username starts with 'admin'."""
+    sub_lower = identity.sub.lower()
+    username_lower = identity.username.lower()
+    return (
+        "admin" in sub_lower
+        or username_lower.startswith("admin")
+    )
+
+
+def _extract_token(request: Request) -> str:
+    """Extract auth token from request.
+
+    Priority: X-User-Token header > Authorization: Bearer *** > query ?token
+    """
+    # 1. X-User-Token header (preferred)
+    token = request.headers.get("X-User-Token", "").strip()
+    if token:
+        return token
+
+    # 2. Authorization: Bearer ***
+    auth = request.headers.get("Authorization", "").strip()
+    if auth.startswith("Bearer "):
+        return auth[7:].strip()
+
+    # 3. Query parameter (for WebSocket / legacy)
+    token = request.query_params.get("token", "").strip()
+    return token
 
 
 def create_access_token(code: str, is_admin: bool = False) -> str:
@@ -94,7 +171,7 @@ def verify_token(token: str) -> AuthUser:
         if code.startswith("admin"):
             is_admin = True
 
-        return AuthUser(code=code, is_admin=is_admin)
+        return AuthUser.from_jwt(code=code, is_admin=is_admin)
 
     except JWTError:
         raise HTTPException(
@@ -104,77 +181,105 @@ def verify_token(token: str) -> AuthUser:
         )
 
 
-async def require_auth(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-) -> AuthUser:
-    """认证依赖 - 需要有效JWT。
+async def _verify_sidecar(token: str) -> AuthUser | None:
+    """Verify a Casdoor sidecar session token. Returns AuthUser or None."""
+    sidecar = get_sidecar()
+    result = await sidecar.verify(token)
 
-    用于保护需要登录的API端点。如果请求中没有提供有效的Bearer token，
-    将返回401 Unauthorized。
+    if not result.ok or result.identity is None:
+        return None
 
-    Args:
-        credentials: HTTP Bearer认证凭据
+    user = AuthUser.from_identity(result.identity, token)
+    # Update token in case sidecar issued a new one during refresh
+    if result.token and result.token != token:
+        user.token = result.token
 
-    Returns:
-        AuthUser对象
+    logger.debug("auth: user=%s sub=%s", user.username, user.sub)
+    return user
 
-    Raises:
-        HTTPException: 401 如果没有提供凭据或token无效
+
+async def require_auth(request: Request) -> AuthUser:
+    """FastAPI dependency: require valid auth for the active auth_mode.
+
+    Mode routing:
+      - ``disabled`` — returns anonymous user (dev/staging)
+      - ``casdoor``  — requires a valid Casdoor sidecar session token
+      - ``jwt``      — requires a valid JWT (invite-code / token-quota system)
+
+    Raises HTTPException(401) if no valid token is found.
+
+    Usage:
+        @router.get("/protected")
+        async def protected_endpoint(user: AuthUser = Depends(require_auth)):
+            ...
     """
-    if credentials is None:
+    if settings.auth_mode == "disabled":
+        # Auth disabled — return anonymous user (useful for dev/staging)
+        return AuthUser(sub="anonymous", username="anonymous", token="")
+
+    token = _extract_token(request)
+    if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required",
+            detail="请先登录",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    return verify_token(credentials.credentials)
+    if settings.auth_mode == "casdoor":
+        user = await _verify_sidecar(token)
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="登录已过期，请重新登录",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        return user
+
+    # Default: jwt mode — strict JWT verification, no fallback
+    return verify_token(token)
 
 
-async def require_admin(auth: AuthUser = Depends(require_auth)) -> AuthUser:
-    """管理员权限依赖 - 需要admin标识。
+async def require_admin(user: AuthUser = Depends(require_auth)) -> AuthUser:
+    """FastAPI dependency: require admin user.
 
-    在require_auth基础上进一步检查用户是否为管理员。
-    目前判断规则：code以"admin"开头的为管理员。
-
-    Args:
-        auth: 已认证的用户信息
-
-    Returns:
-        AuthUser对象（管理员）
-
-    Raises:
-        HTTPException: 403 如果用户不是管理员
+    Usage:
+        @router.get("/admin/endpoint")
+        async def admin_endpoint(user: AuthUser = Depends(require_admin)):
+            ...
     """
-    if not auth.is_admin:
+    if not user.is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required",
+            detail="需要管理员权限",
         )
-    return auth
+    return user
 
 
-async def optional_auth(
-    request: Request,
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-) -> Optional[AuthUser]:
-    """可选认证 - 有token则验证，没有则返回None。
+async def optional_auth(request: Request) -> AuthUser | None:
+    """FastAPI dependency: optionally authenticate user for the active auth_mode.
 
-    用于那些既支持匿名访问又支持认证访问的端点。
-    如果提供了token则验证并返回用户信息，否则返回None。
+    Returns AuthUser if token is valid (per mode), None otherwise.
+    Never raises 401.
 
-    Args:
-        request: FastAPI请求对象
-        credentials: HTTP Bearer认证凭据（可选）
-
-    Returns:
-        AuthUser对象或None
+    Usage:
+        @router.get("/optional")
+        async def optional_endpoint(user: Optional[AuthUser] = Depends(optional_auth)):
+            if user:
+                ...
     """
-    if credentials is None:
+    if settings.auth_mode == "disabled":
+        return AuthUser(sub="anonymous", username="anonymous", token="")
+
+    token = _extract_token(request)
+    if not token:
         return None
 
+    if settings.auth_mode == "casdoor":
+        return await _verify_sidecar(token)
+
+    # Default: jwt mode — strict JWT verification, no fallback
     try:
-        return verify_token(credentials.credentials)
+        return verify_token(token)
     except HTTPException:
         return None
 
@@ -213,7 +318,4 @@ async def check_quota_before_generation(code: str) -> None:
     except Exception as e:
         # 数据库连接异常时记录日志，但允许继续（降级处理）
         # 生产环境建议改为拒绝
-        import logging
-        logging.getLogger("novel_creator.web.auth").warning(
-            "Quota check failed for %s: %s", code, e
-        )
+        logger.warning("Quota check failed for %s: %s", code, e)

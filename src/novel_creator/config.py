@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -76,5 +77,23 @@ class Settings(BaseSettings):
             return self.openrouter_base_url
         return self.openai_base_url
 
+
+    # Auth — mode: "jwt" (open-source default) | "casdoor" | "disabled"
+    #   jwt     — invite-code login + JWT + token quota (open-source line)
+    #   casdoor — Casdoor sidecar session auth (enterprise/self-hosted line)
+    #   disabled— all routes open (dev/staging)
+    auth_mode: str = "jwt"
+    auth_sidecar_url: str = ""  # e.g., http://localhost:9098
+    public_origin: str = "http://localhost:8000"  # used for sidecar callback / login URLs
+    auth_enabled: bool = False  # legacy compat: auth_enabled=true → casdoor mode
+
+    @model_validator(mode="after")
+    def validate_auth(self) -> "Settings":
+        if self.auth_enabled and self.auth_mode == "jwt":
+            # Legacy: NOVEL_AUTH_ENABLED=true previously meant Casdoor sidecar auth
+            self.auth_mode = "casdoor"
+        if self.auth_mode == "casdoor" and not self.auth_sidecar_url:
+            raise ValueError("NOVEL_AUTH_SIDECAR_URL is required when auth_mode=casdoor")
+        return self
 
 settings = Settings()

@@ -1,5 +1,9 @@
 <template>
-  <PanelCard title="卷册结构" icon="📚">
+  <div class="volume-tree-card card">
+    <div class="card-header">
+      <span class="card-icon">📚</span>
+      <span class="card-title">卷册结构</span>
+    </div>
     <template v-if="worldStore.volumes.length">
       <div class="volume-list">
         <div v-for="vol in worldStore.volumes" :key="vol.volume_index" class="volume-item ledger-rule">
@@ -17,11 +21,10 @@
       </div>
     </template>
     <EmptyState v-else message="暂无卷册数据" />
-  </PanelCard>
+  </div>
 </template>
 
 <script setup lang="ts">
-import PanelCard from '@/components/common/PanelCard.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { useWorldStore } from '@/stores/world'
 
@@ -29,6 +32,33 @@ const worldStore = useWorldStore()
 </script>
 
 <style scoped lang="scss">
+.volume-tree-card {
+  padding: var(--sp-md);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  padding-bottom: var(--sp-md);
+  margin-bottom: var(--sp-md);
+  border-bottom: 1px solid var(--border-muted);
+}
+
+.card-icon {
+  font-size: 1.1rem;
+  opacity: 0.7;
+}
+
+.card-title {
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
 .volume-list {
   display: flex;
   flex-direction: column;

@@ -1,74 +1,70 @@
 <template>
-  <div class="token-page">
-    <!-- Section: Total -->
+  <div class="token-page page-container">
     <header class="page-header">
-      <h2 class="page-title">Token 消耗</h2>
+      <h1 class="page-title">Token 消耗</h1>
       <span class="page-subtitle">资源追踪与分析</span>
     </header>
 
-    <div class="ledger-rule" />
-
-    <!-- Total Panel -->
-    <section class="totals-section">
-      <div class="total-item">
-        <span class="total-label">总 Token</span>
-        <span class="total-value font-data">{{ formatNum(stats.total.total_tokens) }}</span>
-      </div>
-      <div class="total-item">
-        <span class="total-label">Prompt</span>
-        <span class="total-value font-data prompt-color">{{ formatNum(stats.total.prompt_tokens) }}</span>
-      </div>
-      <div class="total-item">
-        <span class="total-label">Completion</span>
-        <span class="total-value font-data completion-color">{{ formatNum(stats.total.completion_tokens) }}</span>
-      </div>
-    </section>
-
-    <div class="ledger-rule" />
-
-    <!-- By Role -->
-    <section class="role-section">
-      <h3 class="section-label">按角色分布</h3>
-      <div class="role-list">
-        <div v-for="r in stats.by_role" :key="r.role" class="role-row">
-          <div class="role-info">
-            <span class="role-name">{{ r.role }}</span>
-            <span class="role-pct font-data">{{ rolePct(r) }}%</span>
+    <div class="page-content">
+      <!-- Totals -->
+      <section class="card totals-card">
+        <h3 class="section-label">总计</h3>
+        <div class="totals-section">
+          <div class="total-item">
+            <span class="total-label">总 Token</span>
+            <span class="total-value font-data">{{ formatNum(stats.total.total_tokens) }}</span>
           </div>
-          <div class="role-bar-track">
-            <div
-              class="role-bar-fill prompt-bar"
-              :style="{ width: barWidth(r.prompt_tokens) }"
-            />
-            <div
-              class="role-bar-fill completion-bar"
-              :style="{ width: barWidth(r.completion_tokens), left: barWidth(r.prompt_tokens) }"
-            />
+          <div class="total-item">
+            <span class="total-label">Prompt</span>
+            <span class="total-value font-data prompt-color">{{ formatNum(stats.total.prompt_tokens) }}</span>
           </div>
-          <div class="role-nums font-data">
-            <span class="prompt-color">{{ formatTokens(r.prompt_tokens) }}</span>
-            <span class="text-muted">/</span>
-            <span class="completion-color">{{ formatTokens(r.completion_tokens) }}</span>
+          <div class="total-item">
+            <span class="total-label">Completion</span>
+            <span class="total-value font-data completion-color">{{ formatNum(stats.total.completion_tokens) }}</span>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <div class="ledger-rule" />
+      <!-- By Role -->
+      <section class="card role-card">
+        <h3 class="section-label">按角色分布</h3>
+        <div class="role-list">
+          <div v-for="r in stats.by_role" :key="r.role" class="role-row">
+            <div class="role-info">
+              <span class="role-name">{{ r.role }}</span>
+              <span class="role-pct font-data">{{ rolePct(r) }}%</span>
+            </div>
+            <div class="role-bar-track">
+              <div
+                class="role-bar-fill prompt-bar"
+                :style="{ width: barWidth(r.prompt_tokens) }"
+              />
+              <div
+                class="role-bar-fill completion-bar"
+                :style="{ width: barWidth(r.completion_tokens), left: barWidth(r.prompt_tokens) }"
+              />
+            </div>
+            <div class="role-nums font-data">
+              <span class="prompt-color">{{ formatTokens(r.prompt_tokens) }}</span>
+              <span class="text-muted">/</span>
+              <span class="completion-color">{{ formatTokens(r.completion_tokens) }}</span>
+            </div>
+          </div>
+        </div>
+      </section>
 
-    <!-- By Chapter Trend -->
-    <section class="chart-section">
-      <h3 class="section-label">按章节趋势</h3>
-      <div ref="chapterChartEl" class="chart-container" />
-    </section>
+      <!-- By Chapter Trend -->
+      <section class="card chart-card">
+        <h3 class="section-label">按章节趋势</h3>
+        <div ref="chapterChartEl" class="chart-container" />
+      </section>
 
-    <div class="ledger-rule" />
-
-    <!-- By Chapter × Role Stacked -->
-    <section class="chart-section">
-      <h3 class="section-label">章节 × 角色消耗</h3>
-      <div ref="stackedChartEl" class="chart-container chart-container--tall" />
-    </section>
+      <!-- By Chapter × Role Stacked -->
+      <section class="card chart-card">
+        <h3 class="section-label">章节 × 角色消耗</h3>
+        <div ref="stackedChartEl" class="chart-container chart-container--tall" />
+      </section>
+    </div>
   </div>
 </template>
 
@@ -354,17 +350,17 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
-.token-page {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+.page-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 var(--sp-lg);
 }
 
 .page-header {
   display: flex;
   align-items: baseline;
   gap: var(--sp-md);
-  padding-bottom: var(--sp-lg);
+  margin-bottom: var(--sp-lg);
 }
 
 .page-title {
@@ -381,15 +377,20 @@ onUnmounted(() => {
   color: var(--text-muted);
 }
 
-.ledger-rule {
-  border-bottom: 1px solid var(--border-rule);
+.page-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-lg);
+}
+
+.card {
+  padding: var(--sp-lg);
 }
 
 /* ---------- Totals ---------- */
 .totals-section {
   display: flex;
-  gap: var(--sp-2xl);
-  padding: var(--sp-xl) 0;
+  gap: var(--sp-xl);
 }
 
 .total-item {
@@ -426,19 +427,6 @@ onUnmounted(() => {
 }
 
 /* ---------- Role Section ---------- */
-.role-section {
-  padding: var(--sp-xl) 0;
-}
-
-.section-label {
-  font-family: var(--font-ui);
-  font-size: var(--fs-xs);
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin: 0 0 var(--sp-lg) 0;
-}
-
 .role-list {
   display: flex;
   flex-direction: column;
@@ -474,6 +462,7 @@ onUnmounted(() => {
   position: relative;
   height: 6px;
   background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
@@ -503,10 +492,6 @@ onUnmounted(() => {
 }
 
 /* ---------- Chart Section ---------- */
-.chart-section {
-  padding: var(--sp-xl) 0;
-}
-
 .chart-container {
   width: 100%;
   height: 280px;
@@ -514,5 +499,25 @@ onUnmounted(() => {
 
 .chart-container--tall {
   height: 360px;
+}
+
+@media (max-width: 768px) {
+  .page-container {
+    padding: 0 var(--sp-md);
+  }
+
+  .totals-section {
+    flex-direction: column;
+    gap: var(--sp-md);
+  }
+
+  .role-row {
+    grid-template-columns: 1fr;
+    gap: var(--sp-sm);
+  }
+
+  .role-nums {
+    justify-content: flex-start;
+  }
 }
 </style>

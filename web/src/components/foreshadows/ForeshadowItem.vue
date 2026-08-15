@@ -1,5 +1,5 @@
 <template>
-  <div class="foreshadow-item">
+  <div class="foreshadow-item card">
     <div class="fs-header">
       <span :class="['fs-status', `status-${foreshadow.status}`]">{{ foreshadow.status }}</span>
       <el-tag size="small" :type="importanceType">{{ foreshadow.importance }}</el-tag>
@@ -36,12 +36,10 @@ const importanceType = computed((): TagType => {
 
 <style scoped lang="scss">
 .foreshadow-item {
-  padding: var(--sp-md) 0;
-  border-bottom: 1px solid var(--border-rule);
-  background: transparent;
-  border-radius: 6px;
+  padding: var(--sp-md);
+  margin-bottom: var(--sp-md);
 
-  &:last-child { border-bottom: none; }
+  &:last-child { margin-bottom: 0; }
 }
 
 .fs-header {

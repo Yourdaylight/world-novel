@@ -46,62 +46,70 @@ defineEmits<{
 
 <style scoped lang="scss">
 .step-proposition {
-  padding: 1rem 0;
+  background: var(--bg-surface);
 }
 
 .step-title {
-  font-size: 1.4rem;
-  color: var(--text-primary, #e0e0ff);
-  margin-bottom: 0.5rem;
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  color: var(--text-primary);
+  margin-bottom: var(--sp-sm);
+  letter-spacing: -0.02em;
 }
 
 .step-guide {
-  color: var(--text-muted, #888);
-  margin-bottom: 1.5rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--sp-lg);
   line-height: 1.6;
 }
 
 .prop-input {
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--sp-lg);
 
   :deep(.el-textarea__inner) {
-    background: var(--bg-surface, #1a1a3e);
-    border-color: var(--border, #2a2a4a);
-    color: var(--text-primary, #e0e0ff);
-    font-size: 1rem;
+    background: var(--bg-void);
+    border-color: var(--border-default);
+    color: var(--text-primary);
+    font-size: var(--fs-base);
     line-height: 1.8;
+    border-radius: var(--radius-md);
+    padding: var(--sp-md);
 
     &:focus {
-      border-color: #409eff;
+      border-color: var(--accent-ember);
+      box-shadow: 0 0 0 3px var(--accent-ember-dim);
     }
   }
 }
 
 .inspiration {
   .inspiration-label {
-    font-size: 0.85rem;
-    color: var(--text-muted, #888);
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
     display: block;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--sp-sm);
   }
 }
 
 .examples {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--sp-sm);
 }
 
 .example-tag {
   cursor: pointer;
   white-space: normal;
   height: auto;
-  padding: 0.5rem 0.75rem;
+  padding: var(--sp-sm) var(--sp-md);
   line-height: 1.4;
+  background: var(--bg-elevated);
+  border-color: var(--border-default);
+  color: var(--text-secondary);
 
   &:hover {
-    border-color: #409eff;
-    color: #409eff;
+    border-color: var(--accent-ember);
+    color: var(--accent-ember);
   }
 }
 </style>

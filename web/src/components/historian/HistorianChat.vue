@@ -1,39 +1,44 @@
 <template>
-  <div class="historian-chat">
-    <div class="chat-header ledger-rule">
-      <span class="chat-title">史官对话</span>
-      <span class="chat-hint">与史官讨论剧情、角色、撰写章节</span>
-      <el-button v-if="messages.length > 0" text size="small" @click="clearHistory" style="margin-left:auto">清空记录</el-button>
-    </div>
-    <div class="chat-messages" ref="msgContainer">
-      <div v-if="messages.length === 0" class="chat-welcome">
-        <p class="welcome-prose">你好，造物主。我是这个世界的史官，掌握所有角色的记忆与行动。</p>
-        <p class="welcome-hint">你可以问我：</p>
-        <div class="suggestions">
-          <el-button v-for="s in suggestions" :key="s" size="small" plain @click="sendMessage(s)">{{ s }}</el-button>
+  <div class="historian-page page-container">
+    <header class="page-header">
+      <div class="header-titles">
+        <h1 class="page-title">史官对话</h1>
+        <span class="page-subtitle">与史官讨论剧情、角色、撰写章节</span>
+      </div>
+      <el-button v-if="messages.length > 0" text size="small" @click="clearHistory">清空记录</el-button>
+    </header>
+
+    <div class="chat-card card">
+      <div class="chat-messages" ref="msgContainer">
+        <div v-if="messages.length === 0" class="chat-welcome">
+          <p class="welcome-prose">你好，造物主。我是这个世界的史官，掌握所有角色的记忆与行动。</p>
+          <p class="welcome-hint">你可以问我：</p>
+          <div class="suggestions">
+            <el-button v-for="s in suggestions" :key="s" size="small" plain @click="sendMessage(s)">{{ s }}</el-button>
+          </div>
+        </div>
+        <div v-for="(msg, i) in messages" :key="i" :class="['chat-msg', msg.role]">
+          <div class="msg-role">{{ msg.role === 'user' ? '造物主' : '史官' }}</div>
+          <div class="msg-content" v-html="renderMarkdown(msg.content)"></div>
+        </div>
+        <div v-if="loading" class="chat-msg assistant">
+          <div class="msg-role">史官</div>
+          <div class="msg-content loading-dots">史官正在翻阅记录...</div>
         </div>
       </div>
-      <div v-for="(msg, i) in messages" :key="i" :class="['chat-msg', msg.role]">
-        <div class="msg-role">{{ msg.role === 'user' ? '造物主' : '史官' }}</div>
-        <div class="msg-content" v-html="renderMarkdown(msg.content)"></div>
+      <div class="chat-input">
+        <el-input
+          v-model="input"
+          placeholder="向史官提问或下达指令..."
+          @keyup.enter="sendMessage()"
+          :disabled="loading"
+          size="large"
+        >
+          <template #append>
+            <el-button :loading="loading" type="primary" @click="sendMessage()" class="send-btn">发送</el-button>
+          </template>
+        </el-input>
       </div>
-      <div v-if="loading" class="chat-msg assistant">
-        <div class="msg-role">史官</div>
-        <div class="msg-content loading-dots">史官正在翻阅记录...</div>
-      </div>
-    </div>
-    <div class="chat-input">
-      <el-input
-        v-model="input"
-        placeholder="向史官提问或下达指令..."
-        @keyup.enter="sendMessage()"
-        :disabled="loading"
-        size="large"
-      >
-        <template #append>
-          <el-button :loading="loading" @click="sendMessage()" class="send-btn">发送</el-button>
-        </template>
-      </el-input>
     </div>
   </div>
 </template>
@@ -141,40 +146,60 @@ function scrollToBottom() {
 </script>
 
 <style scoped lang="scss">
-.historian-chat {
+.page-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 var(--sp-lg);
+  min-height: calc(100vh - var(--header-height) - var(--sp-md) * 2);
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 500px;
 }
 
-.chat-header {
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-md);
+  margin-bottom: var(--sp-lg);
+}
+
+.header-titles {
   display: flex;
   align-items: baseline;
-  gap: var(--sp-sm);
+  gap: var(--sp-md);
+}
 
-  .chat-title {
-    font-family: var(--font-ui);
-    font-size: var(--fs-lg);
-    font-weight: 400;
-    color: var(--text-primary);
-  }
-  .chat-hint {
-    font-family: var(--font-ui);
-    font-size: var(--fs-xs);
-    color: var(--text-muted);
-  }
+.page-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  font-weight: 400;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.page-subtitle {
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.chat-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: var(--sp-lg);
 }
 
 .chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: var(--sp-md) 0;
-  min-height: 300px;
+  min-height: 0;
+  padding-right: var(--sp-sm);
 }
 
 .chat-welcome {
-  padding: var(--sp-2xl) 0;
+  padding: var(--sp-xl) 0;
   color: var(--text-muted);
 
   .welcome-prose {
@@ -262,14 +287,27 @@ function scrollToBottom() {
 .chat-input {
   padding-top: var(--sp-md);
   border-top: 1px solid var(--border-rule);
+  margin-top: auto;
+}
 
-  .send-btn {
-    background: var(--accent-ember) !important;
-    color: var(--text-inverse) !important;
-    border-color: var(--accent-ember) !important;
-    border-radius: 6px !important;
-    font-family: var(--font-ui);
-    font-weight: 600;
+@media (max-width: 768px) {
+  .page-container {
+    padding: 0 var(--sp-md);
+    min-height: calc(100vh - var(--header-height) - var(--sp-sm) * 2);
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-titles {
+    flex-direction: column;
+    gap: var(--sp-xs);
+  }
+
+  .chat-card {
+    padding: var(--sp-md);
   }
 }
 </style>

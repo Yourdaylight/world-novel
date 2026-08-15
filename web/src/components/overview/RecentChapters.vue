@@ -1,5 +1,5 @@
 <template>
-  <section class="recent-chapters-card">
+  <section class="recent-chapters-card card">
     <div class="card-header">
       <div>
         <div class="eyebrow">Recent Chapters</div>

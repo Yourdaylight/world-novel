@@ -1,16 +1,19 @@
 <template>
   <div class="characters-page" v-loading="characterStore.loading">
-    <el-row :gutter="20">
-      <el-col :span="14">
-        <div class="ledger-zone">
-          <span class="section-label">关系图谱</span>
-          <RelationshipGraph @node-click="onGraphNodeClick" />
+    <header class="page-header">
+      <h1 class="page-title">角色</h1>
+    </header>
+
+    <div class="cards-grid">
+      <RelationshipGraph @node-click="onGraphNodeClick" />
+
+      <div class="card character-list-card">
+        <div class="card-header">
+          <span class="card-icon">☺</span>
+          <span class="card-title">角色列表</span>
         </div>
-      </el-col>
-      <el-col :span="10">
-        <div class="ledger-zone">
-          <span class="section-label">角色列表</span>
-          <div class="character-list">
+        <div class="card-body">
+          <div v-if="characterStore.characters.length" class="character-list">
             <div
               v-for="char in characterStore.characters"
               :key="char.id"
@@ -24,10 +27,10 @@
               <p class="char-backstory">{{ truncate(char.backstory, 120) }}</p>
             </div>
           </div>
-          <EmptyState v-if="!characterStore.characters.length" message="暂无角色数据" />
+          <EmptyState v-else message="暂无角色数据" class="compact-empty" />
         </div>
-      </el-col>
-    </el-row>
+      </div>
+    </div>
 
     <!-- Character Profile Drawer -->
     <el-drawer
@@ -89,14 +92,76 @@ function onGraphNodeClick(characterId: string) {
 </script>
 
 <style scoped lang="scss">
-.ledger-zone {
-  padding-bottom: var(--sp-lg);
+.characters-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--sp-xl) var(--sp-lg);
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-md);
+  margin-bottom: var(--sp-lg);
+  flex-wrap: wrap;
+}
+
+.page-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-2xl);
+  font-weight: 400;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: var(--sp-lg);
+  align-items: stretch;
+}
+
+.character-list-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 400px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  padding: var(--sp-md);
+  border-bottom: 1px solid var(--border-muted);
+}
+
+.card-icon {
+  font-size: 1.1rem;
+  opacity: 0.7;
+}
+
+.card-title {
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.card-body {
+  padding: var(--sp-md);
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .character-list {
   display: flex;
   flex-direction: column;
-  max-height: 500px;
+  max-height: 600px;
   overflow-y: auto;
 }
 
@@ -133,5 +198,19 @@ function onGraphNodeClick(characterId: string) {
   font-family: var(--font-ui);
   font-size: var(--fs-sm);
   line-height: 1.5;
+}
+
+:deep(.empty-state.compact-empty) {
+  padding: var(--sp-lg) var(--sp-md);
+}
+
+@media (max-width: 768px) {
+  .characters-page {
+    padding: var(--sp-lg) var(--sp-md);
+  }
+
+  .cards-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

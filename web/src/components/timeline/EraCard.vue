@@ -111,11 +111,11 @@ const mergedItems = computed<MergedItem[]>(() => {
 
 <style scoped lang="scss">
 .era-card {
-  margin-bottom: var(--sp-lg);
   padding: var(--sp-md);
-  border: 1px solid var(--border-rule);
-  border-radius: 8px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
   background: var(--bg-surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .era-header {
@@ -127,6 +127,7 @@ const mergedItems = computed<MergedItem[]>(() => {
 }
 
 .era-name {
+  font-family: var(--font-display);
   font-size: var(--fs-lg);
   font-weight: 600;
   color: var(--text-primary);

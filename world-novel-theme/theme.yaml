@@ -1,0 +1,20 @@
+apiVersion: theme.halo.run/v1alpha1
+kind: Theme
+metadata:
+  name: theme-worldnovel
+spec:
+  displayName: WorldNovel 产品主题
+  author:
+    name: world-novel team
+    website: https://jqcloudnet.cn
+  description: world-novel 产品宣传页专用主题。独立全宽布局，不继承任何第三方导航栏或页脚，使用编译后的 Tailwind CSS 提供完整的暗色主题产品页面。
+  logo: /themes/theme-worldnovel/screenshot.png
+  website: https://jqcloudnet.cn
+  repo: https://github.com/Yourdaylight/world-novel
+  version: 1.0.0
+  requires: ">=2.23.0"
+  customTemplates:
+    page:
+      - name: "产品宣传页"
+        description: "全宽独立产品宣传页，不显示站点导航栏和页脚，适用于 world-novel 等产品营销页面"
+        file: "page.html"

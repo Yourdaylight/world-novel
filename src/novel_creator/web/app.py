@@ -14,6 +14,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 
+from novel_creator.config import settings
 from novel_creator.log import get_logger
 from novel_creator.web.events import get_event_queue
 from novel_creator.web.routes import router
@@ -41,7 +42,7 @@ app.include_router(router, prefix="/api")
 @app.get("/api/health")
 async def health():
     """Quick health check for smoke tests and monitoring."""
-    return {"status": "ok", "version": "0.5.0"}
+    return {"status": "ok", "version": "0.5.0", "auth_mode": settings.auth_mode}
 
 
 # ── Security headers middleware ─────────────────────────
@@ -179,3 +180,12 @@ async def _broadcast_loop():
 async def startup():
     """Start the WebSocket broadcast loop on app startup."""
     asyncio.create_task(_broadcast_loop())
+    if settings.auth_mode == "casdoor":
+        logger.info(
+            "🔐 Auth mode=casdoor — sidecar: %s",
+            settings.auth_sidecar_url or "(not configured)",
+        )
+    elif settings.auth_mode == "jwt":
+        logger.info("🔐 Auth mode=jwt — invite-code login + token quota")
+    else:
+        logger.info("🔓 Auth mode=disabled — all routes are open")

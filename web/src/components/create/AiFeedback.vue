@@ -92,48 +92,50 @@ async function fetchAnalysis(text: string) {
 
 <style scoped lang="scss">
 .ai-feedback {
-  background: var(--bg-surface, #1a1a3e);
-  border: 1px solid var(--border, #2a2a4a);
-  border-radius: 12px;
-  padding: 1.25rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-lg);
   min-height: 300px;
 }
 
 .feedback-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--border, #2a2a4a);
+  gap: var(--sp-sm);
+  margin-bottom: var(--sp-md);
+  padding-bottom: var(--sp-sm);
+  border-bottom: 1px solid var(--border-default);
 
   .feedback-icon {
-    font-size: 1.2rem;
+    font-size: var(--fs-md);
   }
   .feedback-title {
     font-weight: 600;
-    color: var(--text-primary, #e0e0ff);
+    color: var(--text-primary);
   }
 }
 
 .feedback-loading {
-  padding: 1rem 0;
+  padding: var(--sp-md) 0;
 }
 
 .feedback-content {
   .section {
-    margin-bottom: 1rem;
+    margin-bottom: var(--sp-md);
 
     h4 {
-      font-size: 0.85rem;
-      color: var(--text-secondary, #aaa);
-      margin-bottom: 0.4rem;
+      font-size: var(--fs-xs);
+      color: var(--text-secondary);
+      margin-bottom: var(--sp-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
 
     p {
-      color: var(--text-primary, #e0e0ff);
+      color: var(--text-primary);
       line-height: 1.6;
-      font-size: 0.9rem;
+      font-size: var(--fs-sm);
     }
 
     ul {
@@ -142,17 +144,17 @@ async function fetchAnalysis(text: string) {
       margin: 0;
 
       li {
-        color: var(--text-primary, #e0e0ff);
-        font-size: 0.85rem;
+        color: var(--text-primary);
+        font-size: var(--fs-sm);
         line-height: 1.6;
-        padding-left: 1rem;
+        padding-left: var(--sp-md);
         position: relative;
 
         &::before {
           content: '•';
           position: absolute;
           left: 0;
-          color: #409eff;
+          color: var(--accent-ember);
         }
       }
     }
@@ -160,8 +162,8 @@ async function fetchAnalysis(text: string) {
 }
 
 .ref-tag {
-  margin-right: 0.5rem;
-  margin-bottom: 0.25rem;
+  margin-right: var(--sp-sm);
+  margin-bottom: var(--sp-xs);
 }
 
 .feedback-empty {
@@ -171,8 +173,8 @@ async function fetchAnalysis(text: string) {
   min-height: 200px;
 
   p {
-    color: var(--text-muted, #888);
-    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
   }
 }
 </style>

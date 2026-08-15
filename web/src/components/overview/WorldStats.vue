@@ -1,6 +1,8 @@
 <template>
-  <div class="stats-wrap">
-    <span class="card-title">世界统计</span>
+  <div class="stats-wrap card">
+    <div class="card-header">
+      <span class="card-title">世界统计</span>
+    </div>
     <div class="stats-grid">
       <div class="stat-item">
         <span class="stat-value font-data">{{ godDecisionCount }}</span>
@@ -110,7 +112,19 @@ onUnmounted(() => unsub())
 </script>
 
 <style scoped lang="scss">
-.stats-wrap { /* container */ }
+.stats-wrap {
+  padding: var(--sp-md);
+  min-width: 0;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  padding-bottom: var(--sp-md);
+  margin-bottom: var(--sp-md);
+  border-bottom: 1px solid var(--border-muted);
+}
 
 .card-title {
   font-family: var(--font-ui);

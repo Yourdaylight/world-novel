@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from urllib.parse import quote
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import PlainTextResponse, FileResponse
 
 from novel_creator.memory.database import get_connection
@@ -14,7 +14,12 @@ from novel_creator.memory.registry import get_novel_by_id
 
 from ._helpers import _get_novel_db
 
+from ..auth_deps import require_auth
+
+# 展示面路由：章节文本/全书阅读接口公开
 router = APIRouter()
+# 控制台路由：导出/文件下载需要登录
+protected_router = APIRouter(dependencies=[Depends(require_auth)])
 
 
 @router.get("/chapter-text/{chapter_index}")
@@ -109,7 +114,7 @@ async def get_novel_full(novel_id: str | None = Query(None)):
         return {"error": str(e), "title": "", "genre": "", "chapters": [], "full_text": "", "word_count": 0}
 
 
-@router.get("/worlds/{novel_id}/export/markdown")
+@protected_router.get("/worlds/{novel_id}/export/markdown")
 async def api_export_markdown(novel_id: str):
     """Export the full novel as Markdown text."""
     try:
@@ -159,7 +164,7 @@ async def api_export_markdown(novel_id: str):
         return PlainTextResponse(f"导出失败: {e}", status_code=500)
 
 
-@router.get("/worlds/{novel_id}/export/json")
+@protected_router.get("/worlds/{novel_id}/export/json")
 async def api_export_json(novel_id: str):
     """Export the full world data as JSON (outline, characters, world, timeline, etc.)."""
     try:
@@ -208,7 +213,7 @@ async def api_export_json(novel_id: str):
         return {"error": str(e)}
 
 
-@router.get("/worlds/{novel_id}/files")
+@protected_router.get("/worlds/{novel_id}/files")
 async def api_list_world_files(novel_id: str):
     """List all downloadable files in a novel's workspace."""
     try:
@@ -250,7 +255,7 @@ async def api_list_world_files(novel_id: str):
         return {"error": str(e), "files": []}
 
 
-@router.get("/worlds/{novel_id}/files/download")
+@protected_router.get("/worlds/{novel_id}/files/download")
 async def api_download_file(novel_id: str, path: str = Query(...)):
     """Download a specific file from a novel's workspace."""
     try:

@@ -1,20 +1,23 @@
 <template>
   <div class="world-page" v-loading="worldStore.loading">
     <template v-if="worldStore.world">
-      <div class="world-toolbar ledger-rule">
-        <el-button v-if="!editing" type="primary" plain size="small" @click="startEdit">
-          ✏️ 编辑世界观
-        </el-button>
-        <template v-if="editing">
-          <el-button type="success" size="small" :loading="saving" @click="onSave">
-            💾 保存
+      <header class="page-header">
+        <h1 class="page-title">世界观</h1>
+        <div class="page-actions">
+          <el-button v-if="!editing" type="primary" plain size="small" @click="startEdit">
+            ✏️ 编辑世界观
           </el-button>
-          <el-button size="small" @click="cancelEdit">取消</el-button>
-        </template>
-      </div>
+          <template v-if="editing">
+            <el-button type="success" size="small" :loading="saving" @click="onSave">
+              💾 保存
+            </el-button>
+            <el-button size="small" @click="cancelEdit">取消</el-button>
+          </template>
+        </div>
+      </header>
 
       <!-- Edit mode: raw JSON editor -->
-      <div v-if="editing" class="edit-mode">
+      <div v-if="editing" class="card edit-card">
         <el-input
           v-model="editJson"
           type="textarea"
@@ -23,27 +26,15 @@
         />
       </div>
 
-      <!-- View mode: ledger sections -->
-      <template v-else>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <PowerSystemCard :world="worldStore.world" />
-          </el-col>
-          <el-col :span="12">
-            <FactionCard :world="worldStore.world" />
-          </el-col>
-        </el-row>
-        <el-row :gutter="20" style="margin-top: var(--sp-lg)">
-          <el-col :span="12">
-            <LocationCard :world="worldStore.world" />
-          </el-col>
-          <el-col :span="12">
-            <HistoryEventCard :world="worldStore.world" />
-          </el-col>
-        </el-row>
-      </template>
+      <!-- View mode: cards grid -->
+      <div v-else class="cards-grid">
+        <PowerSystemCard :world="worldStore.world" />
+        <FactionCard :world="worldStore.world" />
+        <LocationCard :world="worldStore.world" />
+        <HistoryEventCard :world="worldStore.world" />
+      </div>
     </template>
-    <EmptyState v-else message="暂无世界观数据，请先运行世界观构建" />
+    <EmptyState v-else message="暂无世界观数据，请先运行世界观构建" class="compact-empty" />
   </div>
 </template>
 
@@ -98,9 +89,45 @@ async function onSave() {
 </script>
 
 <style scoped lang="scss">
-.world-toolbar {
+.world-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--sp-xl) var(--sp-lg);
+}
+
+.page-header {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-md);
+  margin-bottom: var(--sp-lg);
+  flex-wrap: wrap;
+}
+
+.page-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-2xl);
+  font-weight: 400;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.page-actions {
+  display: flex;
+  align-items: center;
   gap: var(--sp-sm);
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-lg);
+  align-items: stretch;
+}
+
+.edit-card {
+  padding: var(--sp-md);
 }
 
 .json-editor {
@@ -111,7 +138,21 @@ async function onSave() {
     background: var(--bg-surface);
     color: var(--text-primary);
     border: 1px solid var(--border-rule);
-    border-radius: 6px;
+    border-radius: var(--radius-md);
+  }
+}
+
+:deep(.empty-state.compact-empty) {
+  padding: var(--sp-lg) var(--sp-md);
+}
+
+@media (max-width: 768px) {
+  .world-page {
+    padding: var(--sp-lg) var(--sp-md);
+  }
+
+  .cards-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

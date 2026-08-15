@@ -1,9 +1,11 @@
 <template>
   <div class="character-profile">
     <!-- Header -->
-    <div class="profile-header ledger-rule">
-      <h3>{{ character.name }}</h3>
-      <el-tag>{{ character.role }}</el-tag>
+    <div class="profile-header">
+      <div class="profile-title-row">
+        <h2 class="profile-name">{{ character.name }}</h2>
+        <el-tag size="small">{{ character.role }}</el-tag>
+      </div>
       <div class="profile-stats" v-if="fullProfile">
         <span>💬 {{ fullProfile.stats.action_types?.dialogue || 0 }} 对话</span>
         <span>💭 {{ fullProfile.stats.action_types?.thought || 0 }} 思考</span>
@@ -53,8 +55,8 @@
     </div>
 
     <!-- Tabs: Actions / Memories / Emotion Arc -->
-    <div class="profile-section">
-      <el-tabs v-model="activeTab" type="border-card" class="detail-tabs">
+    <div class="card tab-card">
+      <el-tabs v-model="activeTab" class="detail-tabs">
         <!-- Action Timeline -->
         <el-tab-pane label="📜 行动记录" name="actions">
           <div v-if="actionsLoading" v-loading="true" style="min-height: 200px" />
@@ -282,37 +284,54 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-.character-profile { padding: var(--sp-sm); }
+.character-profile { padding: 0; }
 
 .profile-header {
-  display: flex; align-items: center; gap: var(--sp-md); flex-wrap: wrap;
-  h3 {
-    font-family: var(--font-ui);
-    font-size: var(--fs-lg);
-    font-weight: 500;
-    margin: 0;
-    color: var(--text-primary);
-  }
-  .profile-stats {
-    display: flex; gap: var(--sp-md);
-    font-family: var(--font-data);
-    font-size: var(--fs-xs);
-    color: var(--text-muted);
-    margin-left: auto;
-  }
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-md);
+  margin-bottom: var(--sp-lg);
+  flex-wrap: wrap;
+}
+
+.profile-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-md);
+  flex-wrap: wrap;
+}
+
+.profile-name {
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  font-weight: 400;
+  margin: 0;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.profile-stats {
+  display: flex;
+  gap: var(--sp-md);
+  font-family: var(--font-data);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
 }
 
 .profile-section {
   margin-bottom: var(--sp-lg);
-  padding-bottom: var(--sp-lg);
-  border-bottom: 1px solid var(--border-rule);
 
   .backstory-text {
     font-family: var(--font-ui);
     color: var(--text-primary);
-    line-height: 2.0;
-    font-size: var(--fs-md);
+    line-height: 1.85;
+    font-size: var(--fs-base);
   }
+}
+
+.tab-card {
+  padding: var(--sp-md);
 }
 
 .emotion-bars {
@@ -371,7 +390,8 @@ onMounted(() => {
 .detail-tabs {
   background: transparent !important;
   border: none !important;
-  :deep(.el-tabs__content) { padding: var(--sp-md) 0; }
+  :deep(.el-tabs__content) { padding: var(--sp-md) 0 0; }
+  :deep(.el-tabs__header) { margin-bottom: var(--sp-md); }
 }
 
 .empty-hint {

@@ -296,6 +296,25 @@ CREATE TABLE IF NOT EXISTS token_usage (
 CREATE INDEX IF NOT EXISTS idx_token_role ON token_usage(role);
 CREATE INDEX IF NOT EXISTS idx_token_chapter ON token_usage(chapter_index);
 
+-- V7: User-managed character skills (ability / habit / growth direction)
+CREATE TABLE IF NOT EXISTS character_skills (
+    skill_id TEXT NOT NULL,
+    character_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    category TEXT DEFAULT 'ability',
+    description TEXT DEFAULT '',
+    trigger_conditions TEXT DEFAULT '',
+    level REAL DEFAULT 0.3,
+    direction TEXT DEFAULT '',
+    enabled INTEGER DEFAULT 1,
+    priority INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (skill_id, character_id),
+    FOREIGN KEY (character_id) REFERENCES characters(character_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_skills_character ON character_skills(character_id);
+
 -- V6: Relationship history snapshots
 CREATE TABLE IF NOT EXISTS relationship_history (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

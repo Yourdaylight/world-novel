@@ -1,8 +1,14 @@
 <template>
-  <div class="control-page">
-    <el-row :gutter="20">
-      <el-col :span="12">
-        <PanelCard title="运行控制" icon="🚀">
+  <div class="control-page page-container">
+    <header class="page-header">
+      <h1 class="page-title">控制台</h1>
+      <span class="page-subtitle">运行控制与检查点管理</span>
+    </header>
+
+    <div class="page-content">
+      <div class="control-grid">
+        <section class="card control-card">
+          <h3 class="section-label">运行控制</h3>
           <div class="run-control">
             <div class="run-status">
               <span class="status-label">当前状态：</span>
@@ -18,7 +24,7 @@
             <div class="run-actions">
               <el-button
                 v-if="progressStore.phase === 'idle' || progressStore.phase === 'error'"
-                type="success"
+                type="primary"
                 size="large"
                 :loading="starting"
                 @click="onStartGeneration"
@@ -46,21 +52,19 @@
               />
             </div>
           </div>
-        </PanelCard>
-      </el-col>
-      <el-col :span="12">
-        <PanelCard title="检查点列表" icon="💾">
+        </section>
+
+        <section class="card control-card">
+          <h3 class="section-label">检查点列表</h3>
           <CheckpointList />
-        </PanelCard>
-      </el-col>
-    </el-row>
-    <el-row :gutter="20" style="margin-top: 20px">
-      <el-col :span="24">
-        <PanelCard title="CLI 参考" icon="⚙️">
-          <CliReference />
-        </PanelCard>
-      </el-col>
-    </el-row>
+        </section>
+      </div>
+
+      <section class="card cli-card">
+        <h3 class="section-label">CLI 参考</h3>
+        <CliReference />
+      </section>
+    </div>
   </div>
 </template>
 
@@ -68,7 +72,6 @@
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import PanelCard from '@/components/common/PanelCard.vue'
 import CliReference from './CliReference.vue'
 import CheckpointList from './CheckpointList.vue'
 import { useProgressStore } from '@/stores/progress'
@@ -127,34 +130,87 @@ async function onStartGeneration() {
 </script>
 
 <style scoped lang="scss">
+.page-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 var(--sp-lg);
+}
+
+.page-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-md);
+  margin-bottom: var(--sp-lg);
+}
+
+.page-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  font-weight: 400;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.page-subtitle {
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.page-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-lg);
+}
+
+.card {
+  padding: var(--sp-lg);
+}
+
+.control-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-lg);
+}
+
 .run-control {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--sp-md);
 }
 
 .run-status {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--sp-sm);
 
   .status-label {
-    color: var(--text-muted, #888);
-    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
   }
 }
 
 .run-form {
   :deep(.el-form-item) {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0;
   }
 }
 
 .run-actions {
-  padding: 0.5rem 0;
+  padding: var(--sp-xs) 0;
 }
 
 .progress-display {
-  margin-top: 0.5rem;
+  margin-top: var(--sp-xs);
+}
+
+@media (max-width: 768px) {
+  .page-container {
+    padding: 0 var(--sp-md);
+  }
+
+  .control-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

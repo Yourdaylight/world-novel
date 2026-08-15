@@ -24,7 +24,7 @@
         </el-collapse-item>
       </el-collapse>
     </div>
-    <div v-else-if="!loading" class="empty-hint">
+    <div v-else-if="!loading" class="empty-hint compact-empty">
       <span>暂无时代摘要</span>
       <el-button size="small" text @click="handleConsolidate" :loading="consolidating">
         尝试整合
@@ -115,6 +115,6 @@ watch(() => props.characterId, () => load())
   gap: var(--sp-sm);
   color: var(--text-muted);
   font-size: var(--fs-sm);
-  padding: var(--sp-md) 0;
+  padding: var(--sp-sm) 0;
 }
 </style>

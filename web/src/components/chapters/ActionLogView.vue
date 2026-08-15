@@ -1,7 +1,7 @@
 <template>
   <div class="action-log-view">
     <template v-if="actions.length">
-      <div v-for="(action, i) in actions" :key="i" class="action-item">
+      <div v-for="(action, i) in actions" :key="i" class="action-item card">
         <div class="action-header">
           <el-tag size="small" :type="actionTypeColor(action.action_type)">{{ action.action_type }}</el-tag>
           <span class="action-char">{{ action.character_id }}</span>
@@ -35,16 +35,21 @@ function actionTypeColor(type: string): TagType {
 </script>
 
 <style scoped lang="scss">
+.action-log-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-md);
+}
+
 .action-item {
-  padding: 6px 0;
-  border-bottom: 1px solid var(--border-ghost);
+  padding: var(--sp-md);
 }
 
 .action-header {
   display: flex;
   align-items: center;
   gap: var(--sp-sm);
-  margin-bottom: var(--sp-xs);
+  margin-bottom: var(--sp-sm);
   flex-wrap: wrap;
 }
 

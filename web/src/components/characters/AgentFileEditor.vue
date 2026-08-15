@@ -8,9 +8,9 @@
     :destroy-on-close="true"
   >
     <div class="agent-editor" v-loading="loading">
-      <el-row :gutter="20" style="height: 100%">
+      <el-tabs v-model="activeTab" class="agent-tabs">
         <!-- agent.md (read-only) -->
-        <el-col :span="12">
+        <el-tab-pane label="📄 agent.md" name="agent">
           <div class="editor-panel">
             <div class="panel-title">
               <span class="panel-label">📄 agent.md</span>
@@ -18,10 +18,10 @@
             </div>
             <div class="md-content" v-html="renderMarkdown(agentMd)"></div>
           </div>
-        </el-col>
+        </el-tab-pane>
 
         <!-- soul.md (editable) -->
-        <el-col :span="12">
+        <el-tab-pane label="✨ soul.md" name="soul">
           <div class="editor-panel">
             <div class="panel-title">
               <span class="panel-label">✨ soul.md</span>
@@ -33,12 +33,21 @@
               v-model="soulContent"
               language="zh-CN"
               :theme="'dark'"
-              :style="{ height: '500px' }"
+              :style="{ height: 'calc(100vh - 240px)' }"
               :preview="false"
             />
           </div>
-        </el-col>
-      </el-row>
+        </el-tab-pane>
+
+        <!-- skills (user-managed) -->
+        <el-tab-pane label="⚡ 技能" name="skills">
+          <SkillsManager
+            :character-id="props.characterId"
+            :character-name="props.characterName"
+            :visible="activeTab === 'skills'"
+          />
+        </el-tab-pane>
+      </el-tabs>
     </div>
   </el-drawer>
 </template>
@@ -50,6 +59,7 @@ import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 import { useAgentStore } from '@/stores/agents'
 import { escapeHtml } from '@/utils/escapeHtml'
+import SkillsManager from './SkillsManager.vue'
 
 const props = defineProps<{
   visible: boolean
@@ -63,6 +73,7 @@ const agentStore = useAgentStore()
 const agentMd = ref('')
 const soulContent = ref('')
 const loading = ref(false)
+const activeTab = ref('agent')
 
 watch(() => props.visible, async (val) => {
   if (val && props.characterId) {
@@ -130,7 +141,7 @@ function renderMarkdown(text: string): string {
   background: var(--bg-surface);
   padding: var(--sp-md);
   border: 1px solid var(--border-rule);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   line-height: 1.85;
   font-family: var(--font-ui);
   color: var(--text-secondary);

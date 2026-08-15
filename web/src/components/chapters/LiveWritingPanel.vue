@@ -1,9 +1,11 @@
 <template>
-  <div class="live-writing-panel" v-if="liveWritingStore.isWriting">
-    <div class="live-section ledger-rule">
-      <span class="section-label">实时创作</span>
+  <div class="live-writing-panel card" v-if="liveWritingStore.isWriting">
+    <div class="live-section">
+      <div class="live-header">
+        <span class="section-label">实时创作</span>
+        <el-tag type="success" effect="dark" size="small">正在创作</el-tag>
+      </div>
       <div class="live-info">
-        <el-tag type="success" effect="dark">正在创作</el-tag>
         <span v-if="liveWritingStore.currentChapter !== null">第{{ liveWritingStore.currentChapter + 1 }}章</span>
         <span v-if="liveWritingStore.currentPhase">{{ liveWritingStore.currentPhase }}</span>
       </div>
@@ -23,16 +25,26 @@ const liveWritingStore = useLiveWritingStore()
 
 <style scoped lang="scss">
 .live-writing-panel {
-  margin-top: var(--sp-md);
+  padding: var(--sp-lg);
 }
+
 .live-section {
-  padding: var(--sp-md) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-md);
 }
+
+.live-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-md);
+}
+
 .live-info {
   display: flex;
   align-items: center;
-  gap: var(--sp-sm);
-  margin-bottom: var(--sp-md);
+  gap: var(--sp-md);
 
   span {
     font-family: var(--font-data);
@@ -40,10 +52,11 @@ const liveWritingStore = useLiveWritingStore()
     color: var(--text-muted);
   }
 }
+
 .live-text {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-rule);
-  border-radius: 6px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   padding: var(--sp-md);
   font-family: var(--font-ui);
   font-size: var(--fs-md);
@@ -53,10 +66,12 @@ const liveWritingStore = useLiveWritingStore()
   white-space: pre-wrap;
   color: var(--text-primary);
 }
+
 .cursor-blink {
   animation: blink 1s infinite;
   color: var(--accent-ember);
 }
+
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }

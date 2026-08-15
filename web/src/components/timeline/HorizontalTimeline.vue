@@ -116,7 +116,7 @@ function eventsForChapter(ch: number): EventNode[] {
   height: 10px;
   border-radius: 50%;
   background: var(--border-default);
-  border: 2px solid var(--bg-void);
+  border: 2px solid var(--bg-surface);
   flex-shrink: 0;
   z-index: 1;
 

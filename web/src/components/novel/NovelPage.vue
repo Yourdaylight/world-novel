@@ -1,78 +1,87 @@
 <template>
   <div class="novel-page" v-loading="loading">
-    <!-- Header -->
-    <div class="novel-header ledger-rule" v-if="hasChapters">
-      <div class="header-info">
-        <h2 class="novel-title">{{ novelData.title }}</h2>
-        <span class="novel-meta font-data">{{ novelData.chapters.length }}章 · {{ formatWordCount(novelData.word_count) }}</span>
-      </div>
-    </div>
-
-    <!-- Main: TOC + Reader side by side -->
-    <div class="novel-layout" v-if="hasChapters">
-      <!-- Left: TOC -->
-      <aside class="novel-toc">
-        <span class="section-label">目录</span>
-        <nav class="toc-list">
-          <a v-for="ch in novelData.chapters" :key="ch.chapter_index"
-             class="toc-item" :class="{ active: activeIndex === ch.chapter_index }"
-             @click="goToChapter(ch.chapter_index)">
-            <span class="toc-num">第{{ ch.chapter_index + 1 }}章</span>
-            <span class="toc-title" v-if="ch.title">{{ ch.title }}</span>
-            <span class="toc-words font-data">{{ ch.word_count.toLocaleString() }}字</span>
-          </a>
-        </nav>
-        <div class="toc-footer">
-          <el-dropdown trigger="click">
-            <el-button size="small">导出</el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item @click="downloadMarkdown">Markdown</el-dropdown-item>
-                <el-dropdown-item @click="downloadJSON">JSON</el-dropdown-item>
-                <el-dropdown-item @click="copyAll">复制全文</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
+    <div class="novel-content">
+      <!-- Page Header -->
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">小说阅读</h1>
+          <p class="page-subtitle" v-if="hasChapters">
+            {{ novelData.title }} · {{ novelData.chapters.length }}章 · {{ formatWordCount(novelData.word_count) }}
+          </p>
+          <p class="page-subtitle" v-else>查看生成的小说章节与导出文件</p>
         </div>
-      </aside>
+        <button class="back-btn" @click="router.push({ name: 'overview', params: { novelId: route.params.novelId as string } })">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          返回概览
+        </button>
+      </header>
 
-      <!-- Right: Reader -->
-      <div class="novel-reader-area">
-        <NovelReader v-if="activeChapter" :chapter="activeChapter" />
-        <div class="chapter-nav">
-          <el-button :disabled="activeIndex <= 0" @click="goToChapter(activeIndex - 1)">上一章</el-button>
-          <span class="nav-pos font-data">{{ activeIndex + 1 }}/{{ novelData.chapters.length }}章</span>
-          <el-button :disabled="activeIndex >= novelData.chapters.length - 1" @click="goToChapter(activeIndex + 1)">下一章</el-button>
-        </div>
-      </div>
-    </div>
+      <!-- Main: TOC + Reader side by side -->
+      <div class="novel-layout" v-if="hasChapters">
+        <!-- Left: TOC -->
+        <aside class="novel-toc card">
+          <span class="section-label">目录</span>
+          <nav class="toc-list">
+            <a v-for="ch in novelData.chapters" :key="ch.chapter_index"
+               class="toc-item" :class="{ active: activeIndex === ch.chapter_index }"
+               @click="goToChapter(ch.chapter_index)">
+              <span class="toc-num">第{{ ch.chapter_index + 1 }}章</span>
+              <span class="toc-title" v-if="ch.title">{{ ch.title }}</span>
+              <span class="toc-words font-data">{{ ch.word_count.toLocaleString() }}字</span>
+            </a>
+          </nav>
+          <div class="toc-footer">
+            <el-dropdown trigger="click">
+              <el-button size="small">导出</el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item @click="downloadMarkdown">Markdown</el-dropdown-item>
+                  <el-dropdown-item @click="downloadJSON">JSON</el-dropdown-item>
+                  <el-dropdown-item @click="copyAll">复制全文</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </div>
+        </aside>
 
-    <!-- Empty states -->
-    <div class="empty-state" v-if="!loading && !hasChapters">
-      <div v-if="isGenerating" class="empty-generating">
-        <p class="empty-title">生成中...</p>
-        <p class="empty-desc">章节完成后将自动出现在此处</p>
-        <div class="empty-progress" v-if="progressStore.total > 0">
-          <el-progress :percentage="progressStore.percent" :stroke-width="8" :show-text="true" :color="'#d4793a'" />
-          <span class="font-data">{{ progressStore.completed }}/{{ progressStore.total }}章</span>
+        <!-- Right: Reader -->
+        <div class="novel-reader-area card">
+          <NovelReader v-if="activeChapter" :chapter="activeChapter" />
+          <div class="chapter-nav">
+            <el-button :disabled="activeIndex <= 0" @click="goToChapter(activeIndex - 1)">上一章</el-button>
+            <span class="nav-pos font-data">{{ activeIndex + 1 }}/{{ novelData.chapters.length }}章</span>
+            <el-button :disabled="activeIndex >= novelData.chapters.length - 1" @click="goToChapter(activeIndex + 1)">下一章</el-button>
+          </div>
         </div>
       </div>
-      <div v-else class="empty-idle">
-        <p class="empty-title">暂无成书数据</p>
-        <p class="empty-desc">请先在概览页面启动生成</p>
-      </div>
-    </div>
 
-    <!-- File Manager (only shown with chapters) -->
-    <div class="file-section ledger-rule" v-if="hasChapters">
-      <span class="section-label">文件管理</span>
-      <div class="file-manager" v-loading="filesLoading">
-        <div v-if="files.length === 0" class="empty-files">暂无文件</div>
-        <div v-for="f in files" :key="f.path" class="file-item">
-          <span class="file-name">{{ f.name }}</span>
-          <span class="file-size font-data">{{ formatFileSize(f.size) }}</span>
-          <el-tag size="small" :type="f.source === 'historian' ? 'warning' : 'info'">{{ f.source === 'historian' ? '史官' : '角色' }}</el-tag>
-          <el-button size="small" text type="primary" @click="downloadFile(f.path)">下载</el-button>
+      <!-- Empty states -->
+      <div class="empty-state card" v-if="!loading && !hasChapters">
+        <div v-if="isGenerating" class="empty-generating">
+          <p class="empty-title">生成中...</p>
+          <p class="empty-desc">章节完成后将自动出现在此处</p>
+          <div class="empty-progress" v-if="progressStore.total > 0">
+            <el-progress :percentage="progressStore.percent" :stroke-width="8" :show-text="true" :color="'#d4793a'" />
+            <span class="font-data">{{ progressStore.completed }}/{{ progressStore.total }}章</span>
+          </div>
+        </div>
+        <div v-else class="empty-idle">
+          <p class="empty-title">暂无成书数据</p>
+          <p class="empty-desc">请先在概览页面启动生成</p>
+        </div>
+      </div>
+
+      <!-- File Manager (only shown with chapters) -->
+      <div class="file-section card" v-if="hasChapters">
+        <span class="section-label">文件管理</span>
+        <div class="file-manager" v-loading="filesLoading">
+          <div v-if="files.length === 0" class="empty-files">暂无文件</div>
+          <div v-for="f in files" :key="f.path" class="file-item">
+            <span class="file-name">{{ f.name }}</span>
+            <span class="file-size font-data">{{ formatFileSize(f.size) }}</span>
+            <el-tag size="small" :type="f.source === 'historian' ? 'warning' : 'info'">{{ f.source === 'historian' ? '史官' : '角色' }}</el-tag>
+            <el-button size="small" text type="primary" @click="downloadFile(f.path)">下载</el-button>
+          </div>
         </div>
       </div>
     </div>
@@ -81,7 +90,7 @@
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { fetchNovelFull } from '@/api/chapters'
 import { useProgressStore } from '@/stores/progress'
@@ -91,6 +100,7 @@ import client from '@/api/client'
 import type { NovelFull } from '@/api/types'
 
 const route = useRoute()
+const router = useRouter()
 const progressStore = useProgressStore()
 const loading = ref(false)
 const filesLoading = ref(false)
@@ -199,47 +209,82 @@ function formatFileSize(bytes: number) {
 <style scoped lang="scss">
 .novel-page {
   min-height: 400px;
+  background: var(--bg-void);
 }
 
-/* ---- Header ---- */
-.novel-header {
+.novel-content {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--sp-lg);
+}
+
+/* ---- Page Header ---- */
+.page-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: var(--sp-lg);
+  gap: var(--sp-md);
   margin-bottom: var(--sp-lg);
+  padding-bottom: var(--sp-md);
+  border-bottom: 1px solid var(--border-default);
 }
 
-.novel-title {
+.page-title {
   font-family: var(--font-display);
   font-size: var(--fs-xl);
   font-weight: 400;
   color: var(--text-primary);
   margin: 0 0 var(--sp-xs) 0;
+  letter-spacing: -0.02em;
 }
 
-.novel-meta {
-  font-size: var(--fs-xs);
+.page-subtitle {
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
   color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  transition: all var(--duration-base) ease;
+
+  &:hover {
+    color: var(--text-primary);
+    background: var(--bg-elevated);
+  }
 }
 
 /* ---- Layout ---- */
 .novel-layout {
   display: flex;
-  gap: var(--sp-xl);
+  gap: var(--sp-lg);
+  align-items: flex-start;
 }
 
 /* ---- TOC ---- */
 .novel-toc {
-  width: 200px;
-  min-width: 200px;
+  width: 220px;
+  min-width: 220px;
   flex-shrink: 0;
   position: sticky;
-  top: var(--sp-xl);
-  max-height: calc(100vh - 120px);
+  top: calc(var(--header-height, 52px) + var(--sp-lg));
+  max-height: calc(100vh - var(--header-height, 52px) - var(--sp-xl));
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  padding: var(--sp-md);
 }
 
 .section-label {
@@ -309,7 +354,7 @@ function formatFileSize(bytes: number) {
 .novel-reader-area {
   flex: 1;
   min-width: 0;
-  max-width: 720px;
+  padding: var(--sp-lg);
 }
 
 .chapter-nav {
@@ -330,7 +375,7 @@ function formatFileSize(bytes: number) {
 .empty-state {
   display: flex;
   justify-content: center;
-  padding: 64px 0;
+  padding: var(--sp-3xl) var(--sp-lg);
 }
 
 .empty-generating,
@@ -372,8 +417,8 @@ function formatFileSize(bytes: number) {
 
 /* ---- File Section ---- */
 .file-section {
-  margin-top: var(--sp-xl);
-  padding-top: var(--sp-lg);
+  margin-top: var(--sp-lg);
+  padding: var(--sp-md);
 }
 
 .file-manager {
@@ -406,6 +451,32 @@ function formatFileSize(bytes: number) {
   .file-size {
     font-size: var(--fs-xs);
     color: var(--text-muted);
+  }
+}
+
+@media (max-width: 768px) {
+  .novel-content {
+    padding: var(--sp-md);
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-sm);
+  }
+
+  .novel-layout {
+    flex-direction: column;
+  }
+
+  .novel-toc {
+    position: static;
+    width: 100%;
+    max-height: none;
+  }
+
+  .novel-reader-area {
+    padding: var(--sp-md);
   }
 }
 </style>

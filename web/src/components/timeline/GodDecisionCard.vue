@@ -53,12 +53,13 @@ function truncateText(text: string, max: number) {
 
 <style scoped lang="scss">
 .god-decision-card {
-  padding: var(--sp-md) 0 var(--sp-md) var(--sp-md);
-  background: rgba(224, 69, 69, 0.04);
-  border-radius: 6px;
-  margin-bottom: var(--sp-md);
+  padding: var(--sp-md);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
   border-left: 3px solid var(--accent-cinnabar);
-  border-bottom: 1px solid var(--border-rule);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--sp-md);
 }
 
 .decision-header {

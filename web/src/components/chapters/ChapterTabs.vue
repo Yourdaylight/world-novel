@@ -24,30 +24,35 @@ const chapterStore = useChapterStore()
 
 <style scoped lang="scss">
 .chapter-tabs {
-  max-height: 500px;
+  max-height: calc(100vh - var(--header-height) - var(--sp-lg) * 4);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  gap: var(--sp-2xs);
 }
 
 .chapter-tab-item {
-  padding: 6px 0;
+  padding: var(--sp-sm) var(--sp-md);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--border-ghost);
+  gap: var(--sp-sm);
+  border-radius: var(--radius-md);
   font-family: var(--font-ui);
+  font-size: var(--fs-sm);
   color: var(--text-secondary);
-  transition: none;
+  transition: all var(--duration-fast) ease;
 
   &:hover {
     color: var(--text-primary);
+    background: var(--bg-elevated);
   }
 
   &.active {
     color: var(--accent-ember);
-    border-bottom-color: var(--accent-ember);
+    background: var(--accent-ember-dim);
+    font-weight: 600;
 
     .ch-label {
       font-weight: 600;

@@ -111,6 +111,51 @@ class AgentFileSync:
         if timeline:
             await self.export_god_agent(conn, timeline)
 
+    # ── Skills (V7: user-managed skills sync) ────────────────────────
+
+    async def export_skills(
+        self,
+        conn: aiosqlite.Connection,
+        character_id: str,
+    ) -> Path:
+        """Export a character's skills to agents/{character_id}/skills/."""
+        char_dir = self.agents_dir / character_id
+        skills_dir = char_dir / "skills"
+        skills_dir.mkdir(parents=True, exist_ok=True)
+
+        from novel_creator.memory.skill_store import SkillStore
+        store = SkillStore(conn, character_id)
+        skills = await store.get_all()
+
+        # Remove stale files first (skills deleted in DB should vanish on disk)
+        for f in skills_dir.glob("*.md"):
+            f.unlink()
+
+        if not skills:
+            return skills_dir
+
+        cat_labels = {"ability": "专长", "habit": "习惯", "growth": "成长"}
+        for s in skills:
+            label = cat_labels.get(s.category, s.category)
+            md = f"# {s.name} — {label}\n\n"
+            md += f"> 状态: {'启用' if s.enabled else '停用'} | 熟练度: {s.level:.2f} | 优先级: {s.priority}\n\n"
+            if s.description:
+                md += f"## 行为描述\n{s.description}\n\n"
+            if s.trigger_conditions:
+                md += f"## 触发条件\n{s.trigger_conditions}\n\n"
+            if s.category == "growth" and s.direction:
+                md += f"## 成长方向\n{s.direction}\n\n"
+            (skills_dir / f"{s.skill_id}.md").write_text(md, encoding="utf-8")
+
+        return skills_dir
+
+    async def export_all_skills(self, conn: aiosqlite.Connection) -> None:
+        """Export skills for all characters."""
+        cursor = await conn.execute("SELECT character_id FROM characters")
+        rows = await cursor.fetchall()
+        for row in rows:
+            await self.export_skills(conn, row["character_id"])
+
     # ── 文件 → DB (导入人类编辑) ──────────────────────────────────
 
     async def import_character(

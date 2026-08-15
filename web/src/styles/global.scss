@@ -69,15 +69,16 @@
   --fs-3xl:  56px;
   --fs-hero: 80px;
 
-  /* === Spacing — generous === */
-  --sp-2xs: 2px;
-  --sp-xs:  4px;
-  --sp-sm:  8px;
-  --sp-md:  16px;
-  --sp-lg:  24px;
-  --sp-xl:  32px;
-  --sp-2xl: 48px;
-  --sp-3xl: 64px;
+  /* === Spacing — tightened to reduce excessive whitespace === */
+  --sp-2xs: #{$sp-2xs};
+  --sp-xs:  #{$sp-xs};
+  --sp-sm:  #{$sp-sm};
+  --sp-md:  #{$sp-md};
+  --sp-lg:  #{$sp-lg};
+  --sp-xl:  #{$sp-xl};
+  --sp-2xl: #{$sp-2xl};
+  --sp-3xl: #{$sp-3xl};
+  --sp-4xl: #{$sp-4xl};
 
   /* === Motion === */
   --duration-fast:  150ms;
@@ -181,6 +182,69 @@ body {
   text-transform: uppercase;
 }
 
+/* === General utility classes === */
+.flex {
+  display: flex;
+}
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}
+.items-center {
+  align-items: center;
+}
+.items-start {
+  align-items: flex-start;
+}
+.justify-center {
+  justify-content: center;
+}
+.justify-between {
+  justify-content: space-between;
+}
+.gap-2xs { gap: var(--sp-2xs); }
+.gap-xs  { gap: var(--sp-xs); }
+.gap-sm  { gap: var(--sp-sm); }
+.gap-md  { gap: var(--sp-md); }
+.gap-lg  { gap: var(--sp-lg); }
+.gap-xl  { gap: var(--sp-xl); }
+.gap-2xl { gap: var(--sp-2xl); }
+
+.text-primary   { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-muted     { color: var(--text-muted); }
+.text-xs        { font-size: var(--fs-xs); }
+.text-sm        { font-size: var(--fs-sm); }
+.text-center    { text-align: center; }
+
+.m-0     { margin: 0; }
+.mt-sm   { margin-top: var(--sp-sm); }
+.mb-sm   { margin-bottom: var(--sp-sm); }
+.mt-md   { margin-top: var(--sp-md); }
+.mb-md   { margin-bottom: var(--sp-md); }
+.mt-lg   { margin-top: var(--sp-lg); }
+.mb-lg   { margin-bottom: var(--sp-lg); }
+.p-0     { padding: 0; }
+.p-sm    { padding: var(--sp-sm); }
+.p-md    { padding: var(--sp-md); }
+.p-lg    { padding: var(--sp-lg); }
+
+/* Reusable card surface */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Tight page-level padding helpers */
+.page-padding {
+  padding: var(--sp-lg) var(--sp-md);
+}
+.compact-section {
+  margin-bottom: var(--sp-lg);
+}
+
 /* === Element Plus overrides — polished === */
 .el-tabs__item {
   font-family: var(--font-ui) !important;
@@ -264,8 +328,7 @@ body {
   box-shadow: 0 0 0 1px var(--border-default) inset !important;
   transition: all var(--duration-base) ease !important;
   &:focus-within, &.is-focus {
-    box-shadow: 0 0 0 1px var(--accent-ember) inset !important,
-                0 0 0 3px var(--accent-ember-dim) !important;
+    box-shadow: 0 0 0 1px var(--accent-ember) inset, 0 0 0 3px var(--accent-ember-dim);
   }
 }
 

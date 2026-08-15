@@ -74,25 +74,23 @@ const genres = ['玄幻', '武侠', '科幻', '言情', '悬疑', '历史', '末
 
 <style scoped lang="scss">
 .step-params {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 1rem 0;
-
   h2 {
-    font-size: 1.4rem;
-    color: var(--text-primary, #e0e0ff);
-    margin-bottom: 0.5rem;
+    font-family: var(--font-display);
+    font-size: var(--fs-xl);
+    color: var(--text-primary);
+    margin-bottom: var(--sp-sm);
+    letter-spacing: -0.02em;
   }
 
   .guide-text {
-    color: var(--text-muted, #888);
-    margin-bottom: 2rem;
+    color: var(--text-secondary);
+    margin-bottom: var(--sp-xl);
   }
 }
 
 .params-form {
   :deep(.el-form-item__label) {
-    color: var(--text-secondary, #aaa);
+    color: var(--text-secondary);
     font-weight: 500;
   }
   .input-with-hint {
@@ -101,9 +99,9 @@ const genres = ['玄幻', '武侠', '科幻', '言情', '悬疑', '历史', '末
   }
   .form-hint {
     display: block;
-    font-size: 0.78rem;
-    color: var(--text-muted, #888);
-    margin-top: 0.4rem;
+    font-size: var(--fs-xs);
+    color: var(--text-muted);
+    margin-top: var(--sp-xs);
   }
 }
 </style>

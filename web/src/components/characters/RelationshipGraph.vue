@@ -1,5 +1,5 @@
 <template>
-  <div class="relationship-graph-wrapper">
+  <div class="card relationship-graph-wrapper">
     <!-- V10: Graph mode toggle + Path query -->
     <div class="graph-toolbar">
       <div class="toolbar-left">
@@ -558,6 +558,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: var(--sp-sm);
+  padding: var(--sp-md);
 }
 
 .graph-toolbar {
@@ -662,12 +663,11 @@ onUnmounted(() => {
 
 .relationship-graph {
   width: 100%;
-  min-height: 400px;
-  height: calc(100vh - 280px);
-  max-height: 800px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
+  min-height: 360px;
+  height: calc(100vh - 300px);
+  max-height: 700px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
 }
 
 .graph-stats {

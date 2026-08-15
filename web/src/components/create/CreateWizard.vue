@@ -184,20 +184,8 @@ async function onCreateWorld() {
 <style scoped lang="scss">
 .create-wizard {
   min-height: 100vh;
-  background: var(--bg-gradient);
-  padding: var(--sp-xl);
-  max-width: 1000px;
-  margin: 0 auto;
+  background: var(--bg-void);
   position: relative;
-
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--bg-noise);
-    pointer-events: none;
-    opacity: 0.4;
-  }
 }
 
 /* === Header === */
@@ -205,11 +193,13 @@ async function onCreateWorld() {
   display: flex;
   align-items: center;
   gap: var(--sp-md);
-  margin-bottom: var(--sp-lg);
+  padding: var(--sp-lg);
   padding-bottom: var(--sp-md);
   border-bottom: 1px solid var(--border-default);
-  position: relative;
-  z-index: 1;
+  background: var(--bg-surface);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .back-btn {
@@ -243,48 +233,52 @@ async function onCreateWorld() {
 
 /* === Steps === */
 .wizard-steps-wrap {
-  position: relative;
-  z-index: 1;
-  margin-bottom: var(--sp-xl);
+  padding: var(--sp-lg);
+  padding-bottom: 0;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-default);
 
   .el-steps {
-    max-width: 600px;
+    max-width: 1280px;
     margin: 0 auto;
   }
 }
 
 /* === Body === */
 .wizard-body {
-  position: relative;
-  z-index: 1;
+  padding: var(--sp-lg);
   min-height: 420px;
-  margin-bottom: var(--sp-xl);
 }
 
 .proposition-layout {
   display: grid;
-  grid-template-columns: 1fr 360px;
-  gap: var(--sp-xl);
+  grid-template-columns: 1fr 380px;
+  gap: var(--sp-lg);
   align-items: start;
+  max-width: 1280px;
+  margin: 0 auto;
 }
 
 .prop-main {
   min-width: 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-lg);
 }
 
 .prop-aside {
   position: sticky;
-  top: calc(var(--sp-xl) + 16px);
+  top: 90px;
 }
 
 .params-panel {
-  max-width: 640px;
+  max-width: 720px;
   margin: 0 auto;
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-xl);
-  padding: var(--sp-xl);
-  box-shadow: var(--shadow-md);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-lg);
 }
 
 /* === Footer === */
@@ -292,10 +286,11 @@ async function onCreateWorld() {
   display: flex;
   justify-content: center;
   gap: var(--sp-sm);
-  padding-top: var(--sp-xl);
+  padding: var(--sp-lg);
   border-top: 1px solid var(--border-default);
-  position: relative;
-  z-index: 1;
+  background: var(--bg-surface);
+  position: sticky;
+  bottom: 0;
 }
 
 .footer-btn {

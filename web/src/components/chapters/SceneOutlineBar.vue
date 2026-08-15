@@ -76,15 +76,15 @@ function onSceneClick(sceneIndex: number) {
 
 .bar-cards {
   display: flex;
-  gap: var(--sp-sm);
+  gap: var(--sp-md);
   overflow-x: auto;
   padding-bottom: var(--sp-xs);
 
   &::-webkit-scrollbar {
-    height: 3px;
+    height: 4px;
   }
   &::-webkit-scrollbar-thumb {
-    background: var(--border-rule);
+    background: var(--border-default);
     border-radius: 2px;
   }
 }
@@ -92,22 +92,24 @@ function onSceneClick(sceneIndex: number) {
 .scene-card {
   flex: 0 0 auto;
   min-width: 180px;
-  max-width: 240px;
-  padding: var(--sp-sm) var(--sp-md);
-  border: 1px solid var(--border-ghost);
+  max-width: 260px;
+  padding: var(--sp-md);
+  border: 1px solid var(--border-default);
   border-bottom: 2px solid transparent;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   background: var(--bg-surface);
   cursor: pointer;
-  transition: border-color 0.15s;
+  transition: all var(--duration-fast) ease;
 
   &:hover {
-    border-color: var(--border-rule);
+    border-color: var(--border-active);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
   }
 
   &.active {
     border-bottom-color: var(--accent-ember);
-    background: var(--bg-elevated);
+    background: var(--accent-ember-dim);
   }
 }
 
@@ -129,9 +131,9 @@ function onSceneClick(sceneIndex: number) {
   font-family: var(--font-ui);
   font-size: 10px;
   color: var(--text-muted);
-  padding: 1px 6px;
+  padding: 2px 8px;
   border-radius: var(--radius-sm);
-  background: var(--bg-glass);
+  background: var(--bg-elevated);
 }
 
 .card-location {
@@ -148,7 +150,7 @@ function onSceneClick(sceneIndex: number) {
   font-family: var(--font-ui);
   font-size: var(--fs-xs);
   color: var(--text-muted);
-  line-height: 1.4;
+  line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -159,15 +161,15 @@ function onSceneClick(sceneIndex: number) {
 .card-characters {
   display: flex;
   flex-wrap: wrap;
-  gap: 3px;
+  gap: var(--sp-2xs);
 }
 
 .char-chip {
   font-family: var(--font-ui);
   font-size: 10px;
   color: var(--text-secondary);
-  padding: 1px 5px;
-  border-radius: 3px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
   background: rgba(166, 127, 212, 0.12);
 }
 </style>

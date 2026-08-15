@@ -1,33 +1,43 @@
 <template>
   <div class="overview-page" v-loading="loading">
-    <!-- Hero CTA -->
-    <HeroCTA :is-running="isRunning" :error-message="generationError" :novel-status="worldStatus.status" />
-
-    <!-- Generation Error Alert -->
-    <div class="generation-error-alert animate-fade-up" v-if="generationError">
-      <div class="error-alert-inner">
-        <div class="error-alert-header">
-          <div class="error-icon-wrap">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-          </div>
-          <span class="error-title">生成失败</span>
-          <button class="error-close-btn" @click="generationError = ''">关闭</button>
+    <div class="overview-content">
+      <!-- Page Header -->
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">概览</h1>
+          <p class="page-subtitle">世界状态、生成进度与卷册结构</p>
         </div>
-        <p class="error-detail">{{ generationError }}</p>
-      </div>
-    </div>
+        <button class="back-btn" @click="router.push('/')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          返回首页
+        </button>
+      </header>
 
-    <!-- Dashboard Grid -->
-    <div class="dashboard-grid">
-      <div class="grid-card animate-fade-up">
-        <NovelInfoCard />
+      <!-- Hero CTA -->
+      <HeroCTA :is-running="isRunning" :error-message="generationError" :novel-status="worldStatus.status" />
+
+      <!-- Generation Error Alert -->
+      <div class="generation-error-alert animate-fade-up" v-if="generationError">
+        <div class="error-alert-inner">
+          <div class="error-alert-header">
+            <div class="error-icon-wrap">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            </div>
+            <span class="error-title">生成失败</span>
+            <button class="error-close-btn" @click="generationError = ''">关闭</button>
+          </div>
+          <p class="error-detail">{{ generationError }}</p>
+        </div>
       </div>
 
-      <div class="grid-card animate-fade-up" style="animation-delay: 60ms;">
-        <WorldStats />
+      <!-- Dashboard Grid -->
+      <div class="dashboard-grid">
+        <NovelInfoCard class="animate-fade-up" />
+        <WorldStats class="animate-fade-up" style="animation-delay: 60ms;" />
       </div>
 
-      <div class="grid-card propositions-card animate-fade-up" v-if="hasPropositions" style="animation-delay: 120ms;">
+      <!-- Propositions -->
+      <div class="propositions-card card animate-fade-up" v-if="hasPropositions" style="animation-delay: 120ms;">
         <span class="card-title">终极命题</span>
         <div class="propositions-compact">
           <div class="prop-inline" v-if="propositions.what_is">
@@ -44,21 +54,19 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Recent Chapters -->
-    <RecentChapters />
+      <!-- Recent Chapters -->
+      <RecentChapters class="animate-fade-up" style="animation-delay: 180ms;" />
 
-    <!-- Volume Tree -->
-    <div style="margin-top: var(--sp-lg)">
-      <VolumeTree />
+      <!-- Volume Tree -->
+      <VolumeTree class="animate-fade-up" style="animation-delay: 240ms; margin-top: var(--sp-lg);" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, reactive, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import NovelInfoCard from './NovelInfoCard.vue'
 import VolumeTree from './VolumeTree.vue'
 import WorldStats from './WorldStats.vue'
@@ -71,6 +79,7 @@ import client from '@/api/client'
 import { onWSEvent } from '@/composables/useWebSocket'
 
 const route = useRoute()
+const router = useRouter()
 const worldStore = useWorldStore()
 const progressStore = useProgressStore()
 const loading = ref(false)
@@ -194,6 +203,61 @@ async function loadPropositions(novelId: string) {
 <style scoped lang="scss">
 .overview-page {
   min-height: 400px;
+  background: var(--bg-void);
+}
+
+.overview-content {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--sp-lg);
+}
+
+/* === Page Header === */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-md);
+  margin-bottom: var(--sp-lg);
+  padding-bottom: var(--sp-md);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.page-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  font-weight: 400;
+  color: var(--text-primary);
+  margin: 0 0 var(--sp-xs) 0;
+  letter-spacing: -0.02em;
+}
+
+.page-subtitle {
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  transition: all var(--duration-base) ease;
+
+  &:hover {
+    color: var(--text-primary);
+    background: var(--bg-elevated);
+  }
 }
 
 /* === Error Alert — refined === */
@@ -254,23 +318,13 @@ async function loadPropositions(novelId: string) {
 .dashboard-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--sp-md);
+  gap: var(--sp-lg);
   margin-bottom: var(--sp-lg);
 }
 
-.grid-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
+.propositions-card {
   padding: var(--sp-md);
-  min-width: 0;
-  transition: box-shadow var(--duration-base) ease,
-              border-color var(--duration-base) ease;
-
-  &:hover {
-    box-shadow: var(--shadow-md);
-    border-color: rgba(217,119,6,0.15);
-  }
+  margin-bottom: var(--sp-lg);
 }
 
 .card-title {
@@ -329,5 +383,21 @@ async function loadPropositions(novelId: string) {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .overview-content {
+    padding: var(--sp-md);
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-sm);
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

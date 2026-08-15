@@ -36,8 +36,10 @@ $font-data:     'JetBrains Mono', 'Menlo', monospace;
 $fs-xs: 11px; $fs-sm: 13px; $fs-base: 14px; $fs-md: 16px;
 $fs-lg: 20px; $fs-xl: 26px; $fs-2xl: 42px; $fs-3xl: 56px; $fs-hero: 80px;
 
+// Spacing scale — tightened to reduce excessive whitespace while keeping the same token names.
+// $sp-4xl is new and preserves the previous $sp-3xl value for components that truly need a large gap.
 $sp-2xs: 2px; $sp-xs: 4px; $sp-sm: 8px; $sp-md: 16px;
-$sp-lg: 24px; $sp-xl: 32px; $sp-2xl: 48px; $sp-3xl: 64px;
+$sp-lg: 20px; $sp-xl: 28px; $sp-2xl: 40px; $sp-3xl: 52px; $sp-4xl: 64px;
 
 $radius-sm: 6px; $radius-md: 10px; $radius-lg: 16px; $radius-xl: 24px; $radius-badge: 6px; $radius-avatar: 50%;
 $duration-fast: 150ms; $duration-base: 250ms; $duration-slow: 400ms;

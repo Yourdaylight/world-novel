@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
 from novel_creator.memory.database import get_connection
 
 from ._helpers import _get_novel_db
 
+# 展示面路由：全部为 GET 只读浏览接口，公开无需登录
 router = APIRouter()
 
 

@@ -23,6 +23,7 @@ from ._helpers import _get_novel_db
 
 logger = logging.getLogger("novel_creator.web")
 
+# 展示面路由：GET 进度/状态监控公开
 router = APIRouter()
 
 # Background task tracker

@@ -1,7 +1,7 @@
 <template>
   <div class="emotion-chart" v-loading="loading">
     <div ref="chartRef" class="chart-container" v-if="states.length"></div>
-    <EmptyState v-else-if="!loading" message="暂无情感数据" icon="📈" />
+    <EmptyState v-else-if="!loading" message="暂无情感数据" icon="📈" class="compact-empty" />
   </div>
 </template>
 
@@ -102,5 +102,9 @@ watch(() => props.characterId, () => loadAndRender())
 .chart-container {
   width: 100%;
   height: 350px;
+}
+
+:deep(.empty-state.compact-empty) {
+  padding: var(--sp-md) var(--sp-sm);
 }
 </style>

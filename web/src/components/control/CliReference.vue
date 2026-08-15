@@ -20,21 +20,34 @@ const commands = [
 </script>
 
 <style scoped lang="scss">
+.cli-reference {
+  display: flex;
+  flex-direction: column;
+}
+
 .cli-item {
-  padding: 0.75rem;
-  margin-bottom: 0.5rem;
-  background: var(--bg-elevated);
-  border-radius: 6px;
+  padding: var(--sp-md) 0;
+  border-bottom: 1px solid var(--border-muted);
 }
+
+.cli-item:last-child {
+  border-bottom: none;
+}
+
 .cli-cmd {
-  display: block;
-  font-family: 'Fira Code', monospace;
-  color: var(--accent-cyan);
-  font-size: 0.9rem;
-  margin-bottom: 0.25rem;
+  display: inline-block;
+  font-family: var(--font-data);
+  color: var(--accent-blue);
+  font-size: var(--fs-sm);
+  padding: var(--sp-2xs) var(--sp-xs);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--sp-xs);
 }
+
 .cli-desc {
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
 }
 </style>

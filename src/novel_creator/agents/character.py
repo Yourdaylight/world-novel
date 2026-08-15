@@ -121,6 +121,9 @@ class CharacterAgent:
                 except Exception:
                     pass
 
+        # V4: Inject user-managed skills (ability / habit / growth direction)
+        skills_block = await self._build_skills_block()
+
         # 3. Call LLM
         prompt = ChatPromptTemplate.from_messages([
             ("system", PROMPT_TEMPLATE.format(
@@ -130,7 +133,7 @@ class CharacterAgent:
                 scene_objective=scene_objective,
                 present_characters=", ".join(present_character_ids),
                 memory_context=memory_context,
-            ) + world_block + soul_block),
+            ) + world_block + soul_block + skills_block),
             ("human", (
                 f"当前是第{chapter_index + 1}章第{scene_index + 1}个场景。\n"
                 f"地点: {location}\n"
@@ -204,3 +207,43 @@ class CharacterAgent:
                 )
 
         return actions
+
+    async def _build_skills_block(self) -> str:
+        """Build the skills injection block from user-managed skills.
+
+        Renders enabled skills into a compact prompt block:
+            ## 你的技能与行为模式
+            - [剑术·专长·熟练0.7] 战斗时主动进攻；危险时优先护住同伴
+            - [谨慎·习惯] 面对陌生人先观察再行动
+
+        growth-category skills additionally render their direction so the
+        character's long-term evolution converges toward it.
+        """
+        try:
+            from novel_creator.memory.skill_store import SkillStore
+            store = SkillStore(self.memory.conn, self.character_id)
+            skills = await store.get_all(enabled_only=True)
+        except Exception:
+            return ""
+
+        if not skills:
+            return ""
+
+        lines = ["", "## 你的技能与行为模式", "> 以下是你具备的能力与行为倾向，请在日常决策中自然体现，不要刻意提及。"]
+        cat_labels = {
+            "ability": "专长",
+            "habit": "习惯",
+            "growth": "成长",
+        }
+        for s in skills:
+            label = cat_labels.get(s.category, s.category)
+            level_str = f"·熟练{int(s.level * 100)}" if s.category == "ability" else ""
+            desc = s.description.strip()
+            line = f"- [{s.name}·{label}{level_str}] {desc}" if desc else f"- [{s.name}·{label}{level_str}]"
+            if s.trigger_conditions.strip():
+                line += f"（触发：{s.trigger_conditions.strip()}）"
+            lines.append(line)
+            if s.category == "growth" and s.direction.strip():
+                lines.append(f"  → 成长方向：{s.direction.strip()}")
+
+        return "\n".join(lines) + "\n"

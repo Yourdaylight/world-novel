@@ -1,11 +1,11 @@
 <template>
   <div class="narrative-view">
     <template v-if="chapterText && chapterText.scenes.length">
-      <div class="summary" v-if="chapterText.summary">
+      <div class="summary card" v-if="chapterText.summary">
         <span class="section-label">摘要</span>
         <p>{{ chapterText.summary }}</p>
       </div>
-      <div v-for="scene in chapterText.scenes" :key="scene.scene_index" class="scene-block">
+      <div v-for="scene in chapterText.scenes" :key="scene.scene_index" class="scene-block card">
         <div class="scene-header">
           <span class="scene-label">场景 {{ scene.scene_index + 1 }}</span>
           <el-tag v-if="scene.pov_character" size="small" type="info">视角: {{ scene.pov_character }}</el-tag>
@@ -30,21 +30,25 @@ function renderText(text: string): string {
 </script>
 
 <style scoped lang="scss">
+.narrative-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-lg);
+}
+
 .summary {
-  padding-bottom: var(--sp-lg);
-  margin-bottom: var(--sp-lg);
-  border-bottom: 1px solid var(--border-rule);
+  padding: var(--sp-md);
 
   p {
     font-family: var(--font-ui);
     color: var(--text-secondary);
-    line-height: 1.5;
+    line-height: 1.7;
     font-size: var(--fs-sm);
   }
 }
 
 .scene-block {
-  margin-bottom: var(--sp-2xl);
+  padding: var(--sp-lg);
 }
 
 .scene-header {
@@ -53,7 +57,7 @@ function renderText(text: string): string {
   gap: var(--sp-md);
   margin-bottom: var(--sp-md);
   padding-bottom: var(--sp-sm);
-  border-bottom: 1px solid var(--border-rule);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .scene-label {

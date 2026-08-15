@@ -232,11 +232,11 @@ async function onResume() {
 }
 
 .hero-inner {
-  padding: var(--sp-lg) var(--sp-xl);
+  padding: var(--sp-md) var(--sp-lg);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--sp-xl);
+  gap: var(--sp-lg);
   transition: background var(--duration-base) ease;
 }
 

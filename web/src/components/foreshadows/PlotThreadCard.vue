@@ -1,5 +1,5 @@
 <template>
-  <div class="plot-thread-card">
+  <div class="plot-thread-card card">
     <div class="pt-header">
       <span class="pt-name">{{ thread.name }}</span>
       <span :class="['pt-status', thread.status === 'active' ? 'active' : 'inactive']">{{ thread.status }}</span>
@@ -22,12 +22,10 @@ defineProps<{ thread: PlotThread }>()
 
 <style scoped lang="scss">
 .plot-thread-card {
-  padding: var(--sp-md) 0;
-  border-bottom: 1px solid var(--border-rule);
-  background: transparent;
-  border-radius: 6px;
+  padding: var(--sp-md);
+  margin-bottom: var(--sp-md);
 
-  &:last-child { border-bottom: none; }
+  &:last-child { margin-bottom: 0; }
 }
 
 .pt-header {

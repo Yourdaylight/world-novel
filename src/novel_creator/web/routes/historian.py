@@ -6,7 +6,7 @@ import json
 import re
 from pathlib import Path
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 
 from novel_creator.config import settings
@@ -15,7 +15,9 @@ from novel_creator.memory.registry import get_novel_by_id
 
 from ._helpers import _get_novel_db, logger
 
-router = APIRouter()
+from ..auth_deps import require_auth
+
+router = APIRouter(dependencies=[Depends(require_auth)])
 
 
 class WorldSaveRequest(BaseModel):

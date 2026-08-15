@@ -1,15 +1,17 @@
 <template>
   <div class="novel-reader">
-    <h3 class="chapter-heading">第{{ chapter.chapter_index + 1 }}章 {{ chapter.title }}</h3>
-    <div class="chapter-body">
-      <p
-        v-for="(para, i) in paragraphs"
-        :key="i"
-        class="chapter-paragraph"
-      >{{ para }}</p>
-    </div>
-    <div class="chapter-footer ledger-rule">
-      <span class="word-count font-data">{{ chapter.word_count.toLocaleString() }} 字</span>
+    <div class="reader-inner">
+      <h3 class="chapter-heading">第{{ chapter.chapter_index + 1 }}章 {{ chapter.title }}</h3>
+      <div class="chapter-body">
+        <p
+          v-for="(para, i) in paragraphs"
+          :key="i"
+          class="chapter-paragraph"
+        >{{ para }}</p>
+      </div>
+      <div class="chapter-footer ledger-rule">
+        <span class="word-count font-data">{{ chapter.word_count.toLocaleString() }} 字</span>
+      </div>
     </div>
   </div>
 </template>
@@ -30,7 +32,12 @@ const paragraphs = computed(() =>
 
 <style scoped lang="scss">
 .novel-reader {
-  /* No max-height — content flows naturally */
+  /* Full width card child; readability is constrained inside .reader-inner */
+}
+
+.reader-inner {
+  max-width: 720px;
+  margin: 0 auto;
 }
 
 .chapter-heading {

@@ -1,34 +1,39 @@
 <template>
-  <PanelCard title="力量体系" icon="⚡">
-    <template v-if="systems.length">
-      <div v-for="(ps, idx) in systems" :key="idx" class="power-block">
-        <div class="power-name">{{ ps.name }}</div>
-        <p class="power-desc">{{ ps.description }}</p>
-        <div v-if="ps.levels && ps.levels.length" class="power-levels">
-          <h4>等级体系</h4>
-          <div v-for="(level, i) in ps.levels" :key="i" class="level-item">
-            <el-tag size="small" :type="i < 3 ? 'primary' : 'info'">
-              {{ typeof level === 'string' ? level : level.name || JSON.stringify(level) }}
-            </el-tag>
+  <div class="card world-card">
+    <div class="card-header">
+      <span class="card-icon">⚡</span>
+      <span class="card-title">力量体系</span>
+    </div>
+    <div class="card-body">
+      <template v-if="systems.length">
+        <div v-for="(ps, idx) in systems" :key="idx" class="power-block">
+          <div class="power-name">{{ ps.name }}</div>
+          <p class="power-desc">{{ ps.description }}</p>
+          <div v-if="ps.levels && ps.levels.length" class="power-levels">
+            <h4>等级体系</h4>
+            <div v-for="(level, i) in ps.levels" :key="i" class="level-item">
+              <el-tag size="small" :type="i < 3 ? 'primary' : 'info'">
+                {{ typeof level === 'string' ? level : level.name || JSON.stringify(level) }}
+              </el-tag>
+            </div>
+          </div>
+          <div v-if="ps.rules" class="power-rules">
+            <h4>规则</h4>
+            <ul>
+              <li v-for="(rule, i) in toArray(ps.rules)" :key="i">
+                {{ typeof rule === 'string' ? rule : JSON.stringify(rule) }}
+              </li>
+            </ul>
           </div>
         </div>
-        <div v-if="ps.rules" class="power-rules">
-          <h4>规则</h4>
-          <ul>
-            <li v-for="(rule, i) in toArray(ps.rules)" :key="i">
-              {{ typeof rule === 'string' ? rule : JSON.stringify(rule) }}
-            </li>
-          </ul>
-        </div>
-      </div>
-    </template>
-    <EmptyState v-else message="暂无力量体系数据" icon="⚡" />
-  </PanelCard>
+      </template>
+      <EmptyState v-else message="暂无力量体系数据" icon="⚡" class="compact-empty" />
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import PanelCard from '@/components/common/PanelCard.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import type { WorldData } from '@/api/types'
 
@@ -50,12 +55,47 @@ function toArray(val: any): any[] {
 </script>
 
 <style scoped lang="scss">
+.world-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  padding: var(--sp-md);
+  border-bottom: 1px solid var(--border-muted);
+}
+
+.card-icon {
+  font-size: 1.1rem;
+  opacity: 0.7;
+}
+
+.card-title {
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.card-body {
+  padding: var(--sp-md);
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
 .power-block {
   margin-bottom: var(--sp-lg);
   padding-bottom: var(--sp-md);
   border-bottom: 1px solid var(--border-rule);
 
-  &:last-child { border-bottom: none; margin-bottom: 0; }
+  &:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
 }
 
 .power-name {
@@ -106,5 +146,9 @@ function toArray(val: any): any[] {
     line-height: 1.85;
     font-size: var(--fs-sm);
   }
+}
+
+:deep(.empty-state.compact-empty) {
+  padding: var(--sp-lg) var(--sp-md);
 }
 </style>

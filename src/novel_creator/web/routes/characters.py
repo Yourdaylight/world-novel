@@ -5,14 +5,19 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 
 from novel_creator.memory.database import get_connection
 
 from ._helpers import _get_novel_db
 
+from ..auth_deps import require_auth
+
+# 展示面路由：GET 只读接口公开
 router = APIRouter()
+# 控制台路由：写操作需要登录
+protected_router = APIRouter(dependencies=[Depends(require_auth)])
 
 
 @router.get("/characters/{character_id}/full-profile")
@@ -209,7 +214,7 @@ async def get_era_summaries(character_id: str, novel_id: str | None = Query(None
         return {"error": str(e), "summaries": [], "total": 0}
 
 
-@router.post("/memory/consolidate")
+@protected_router.post("/memory/consolidate")
 async def consolidate_memories(
     character_id: str = Query(...),
     novel_id: str | None = Query(None),
@@ -260,7 +265,7 @@ class SoulUpdateRequest(BaseModel):
     content: str
 
 
-@router.put("/agents/{character_id}/soul")
+@protected_router.put("/agents/{character_id}/soul")
 async def update_agent_soul(
     character_id: str,
     req: SoulUpdateRequest,
@@ -285,5 +290,151 @@ async def update_agent_soul(
         await conn.close()
 
         return {"ok": True, "synced": changed}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+# ── Skills 管理（用户可管理角色的技能/行为模式/演化方向）─────────────
+
+
+class SkillUpsertRequest(BaseModel):
+    skill_id: str = ""
+    name: str
+    category: str = "ability"
+    description: str = ""
+    trigger_conditions: str = ""
+    level: float = 0.3
+    direction: str = ""
+    enabled: bool = True
+    priority: int = 0
+
+
+@protected_router.get("/agents/{character_id}/skills")
+async def list_character_skills(
+    character_id: str,
+    novel_id: str | None = Query(None),
+):
+    """List all skills for a character."""
+    try:
+        db_path = await _get_novel_db(novel_id)
+        conn = await get_connection(db_path)
+        from novel_creator.memory.skill_store import SkillStore
+        store = SkillStore(conn, character_id)
+        skills = [s.model_dump() for s in await store.get_all()]
+        await conn.close()
+        return {"ok": True, "skills": skills}
+    except Exception as e:
+        return {"ok": False, "error": str(e), "skills": []}
+
+
+@protected_router.post("/agents/{character_id}/skills")
+async def create_character_skill(
+    character_id: str,
+    req: SkillUpsertRequest,
+    novel_id: str | None = Query(None),
+):
+    """Create a new skill for a character."""
+    try:
+        db_path = await _get_novel_db(novel_id)
+        conn = await get_connection(db_path)
+        from novel_creator.memory.skill_store import SkillStore
+        from novel_creator.models.skill import CharacterSkill
+        store = SkillStore(conn, character_id)
+        skill = CharacterSkill(
+            character_id=character_id,
+            name=req.name,
+            category=req.category,
+            description=req.description,
+            trigger_conditions=req.trigger_conditions,
+            level=req.level,
+            direction=req.direction,
+            enabled=req.enabled,
+            priority=req.priority,
+        )
+        skill_id = await store.upsert(skill)
+        await conn.close()
+        # 同步到 agent 文件（重新拿连接，因为上面已 close）
+        try:
+            novel_dir = Path(db_path).parent
+            from novel_creator.sync.agent_files import AgentFileSync
+            sync = AgentFileSync(novel_dir)
+            sync_conn = await get_connection(db_path)
+            await sync.export_skills(sync_conn, character_id)
+            await sync_conn.close()
+        except Exception:
+            pass
+        return {"ok": True, "skill_id": skill_id}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@protected_router.put("/agents/{character_id}/skills/{skill_id}")
+async def update_character_skill(
+    character_id: str,
+    skill_id: str,
+    req: SkillUpsertRequest,
+    novel_id: str | None = Query(None),
+):
+    """Update an existing skill."""
+    try:
+        db_path = await _get_novel_db(novel_id)
+        conn = await get_connection(db_path)
+        from novel_creator.memory.skill_store import SkillStore
+        from novel_creator.models.skill import CharacterSkill
+        store = SkillStore(conn, character_id)
+        skill = CharacterSkill(
+            character_id=character_id,
+            skill_id=skill_id,
+            name=req.name,
+            category=req.category,
+            description=req.description,
+            trigger_conditions=req.trigger_conditions,
+            level=req.level,
+            direction=req.direction,
+            enabled=req.enabled,
+            priority=req.priority,
+        )
+        await store.upsert(skill)
+        await conn.close()
+        return {"ok": True, "skill_id": skill_id}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@protected_router.delete("/agents/{character_id}/skills/{skill_id}")
+async def delete_character_skill(
+    character_id: str,
+    skill_id: str,
+    novel_id: str | None = Query(None),
+):
+    """Delete a skill."""
+    try:
+        db_path = await _get_novel_db(novel_id)
+        conn = await get_connection(db_path)
+        from novel_creator.memory.skill_store import SkillStore
+        store = SkillStore(conn, character_id)
+        deleted = await store.delete(skill_id)
+        await conn.close()
+        return {"ok": deleted}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@protected_router.put("/agents/{character_id}/skills/{skill_id}/toggle")
+async def toggle_character_skill(
+    character_id: str,
+    skill_id: str,
+    novel_id: str | None = Query(None),
+    enabled: bool = Query(True),
+):
+    """Enable/disable a skill."""
+    try:
+        db_path = await _get_novel_db(novel_id)
+        conn = await get_connection(db_path)
+        from novel_creator.memory.skill_store import SkillStore
+        store = SkillStore(conn, character_id)
+        ok = await store.set_enabled(skill_id, enabled)
+        await conn.close()
+        return {"ok": ok, "enabled": enabled}
     except Exception as e:
         return {"ok": False, "error": str(e)}

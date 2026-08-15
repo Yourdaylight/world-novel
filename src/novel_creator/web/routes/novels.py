@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from novel_creator.memory.database import get_connection
@@ -21,7 +21,12 @@ from novel_creator.memory.registry import (
 
 from ._helpers import _get_novel_db, logger
 
+from ..auth_deps import require_auth
+
+# 展示面路由：GET 只读接口公开，无需登录
 router = APIRouter()
+# 控制台路由：写操作需要登录
+protected_router = APIRouter(dependencies=[Depends(require_auth)])
 
 # Forward reference to generation module's _generation_tasks (lazy import to avoid circular)
 
@@ -70,7 +75,7 @@ async def api_list_novels():
     }
 
 
-@router.post("/novels/select")
+@protected_router.post("/novels/select")
 async def api_select_novel(req: SelectNovelRequest):
     """Switch the active novel."""
     try:
@@ -102,7 +107,7 @@ class CreateWorldRequest(BaseModel):
     premise: str = ""
 
 
-@router.post("/worlds/create")
+@protected_router.post("/worlds/create")
 async def api_create_world(req: CreateWorldRequest):
     """Create a new world (register novel + save propositions)."""
     try:
@@ -145,7 +150,7 @@ async def api_create_world(req: CreateWorldRequest):
         return {"ok": False, "error": str(e)}
 
 
-@router.delete("/worlds/{novel_id}")
+@protected_router.delete("/worlds/{novel_id}")
 async def api_delete_world(novel_id: str):
     """Delete a world/novel."""
     try:

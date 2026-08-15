@@ -1,5 +1,5 @@
 <template>
-  <div class="scene-timeline" v-if="scenes.length > 0">
+  <div class="scene-timeline card" v-if="scenes.length > 0">
     <div class="timeline-toggle" @click="expanded = !expanded">
       <span class="toggle-icon">{{ expanded ? '▾' : '▸' }}</span>
       <span class="toggle-label">场景时间线</span>
@@ -86,8 +86,7 @@ const expanded = ref(false)
 
 <style scoped lang="scss">
 .scene-timeline {
-  border-top: 1px solid var(--border-rule);
-  margin-top: var(--sp-lg);
+  padding: var(--sp-md) var(--sp-lg);
 }
 
 .timeline-toggle {
@@ -134,7 +133,7 @@ const expanded = ref(false)
   flex-direction: column;
   gap: 0;
   position: relative;
-  padding-left: var(--sp-lg);
+  padding-left: var(--sp-xl);
 }
 
 .timeline-node {
@@ -169,16 +168,16 @@ const expanded = ref(false)
 
 .node-connector {
   position: absolute;
-  left: -17px;
+  left: -21px;
   top: 20px;
   bottom: 0;
   width: 1px;
-  background: var(--border-rule);
+  background: var(--border-default);
 }
 
 .node-dot {
   position: absolute;
-  left: -24px;
+  left: -28px;
   top: 2px;
   width: 16px;
   height: 16px;
@@ -223,9 +222,9 @@ const expanded = ref(false)
   font-family: var(--font-ui);
   font-size: 10px;
   color: var(--text-muted);
-  padding: 1px 6px;
+  padding: 2px 8px;
   border-radius: var(--radius-sm);
-  background: var(--bg-glass);
+  background: var(--bg-elevated);
 }
 
 .node-objective,
@@ -245,7 +244,7 @@ const expanded = ref(false)
 .node-characters {
   display: flex;
   flex-wrap: wrap;
-  gap: 3px;
+  gap: var(--sp-2xs);
   margin-top: var(--sp-xs);
 }
 
@@ -253,24 +252,24 @@ const expanded = ref(false)
   font-family: var(--font-ui);
   font-size: 10px;
   color: var(--text-secondary);
-  padding: 1px 5px;
-  border-radius: 3px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
   background: rgba(166, 127, 212, 0.12);
 }
 
 .node-foreshadows {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--sp-2xs);
   margin-top: var(--sp-xs);
 }
 
 .foreshadow-tag {
   font-family: var(--font-ui);
   font-size: 10px;
-  padding: 1px 6px;
-  border-radius: 3px;
-  max-width: 200px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  max-width: 240px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

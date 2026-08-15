@@ -33,17 +33,36 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
+.checkpoint-list {
+  display: flex;
+  flex-direction: column;
+}
+
 .cp-item {
-  padding: 0.75rem;
-  background: var(--bg-elevated);
-  border-radius: 6px;
-  margin-bottom: 0.5rem;
+  padding: var(--sp-md) 0;
+  border-bottom: 1px solid var(--border-muted);
 }
+
+.cp-item:last-child {
+  border-bottom: none;
+}
+
 .cp-header {
-  display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sp-xs);
 }
-.cp-title { font-weight: 600; }
+
+.cp-title {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 .cp-meta {
-  display: flex; gap: 1.5rem; font-size: 0.8rem; color: var(--text-muted);
+  display: flex;
+  gap: var(--sp-lg);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
 }
 </style>

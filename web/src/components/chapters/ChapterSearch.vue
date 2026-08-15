@@ -5,7 +5,7 @@
       placeholder="搜索章节..."
       prefix-icon="Search"
       clearable
-      size="small"
+      size="default"
       @input="onInput"
     />
   </div>
@@ -25,6 +25,11 @@ const onInput = useDebounceFn(() => {
 
 <style scoped lang="scss">
 .chapter-search {
-  margin-bottom: var(--sp-md);
+  width: 240px;
+  max-width: 100%;
+
+  :deep(.el-input__inner) {
+    font-family: var(--font-ui);
+  }
 }
 </style>

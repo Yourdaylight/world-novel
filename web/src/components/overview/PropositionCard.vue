@@ -19,10 +19,12 @@ defineProps<{
 
 <style scoped lang="scss">
 .proposition-item {
-  border: 1px solid var(--border-rule);
-  border-radius: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
   padding: var(--sp-md);
   border-left: 3px solid transparent;
+  box-shadow: var(--shadow-sm);
 
   &.accent-blue {
     border-left-color: var(--accent-aurora);

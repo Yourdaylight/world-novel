@@ -10,7 +10,7 @@
         </div>
       </div>
     </div>
-    <EmptyState v-if="!loading && !hasData" message="暂无记忆热度数据" />
+    <EmptyState v-if="!loading && !hasData" message="暂无记忆热度数据" class="compact-empty" />
   </div>
 </template>
 
@@ -137,5 +137,9 @@ watch(() => props.characterId, () => loadAndRender())
   font-size: var(--fs-sm);
   color: var(--text-primary);
   font-weight: 600;
+}
+
+:deep(.empty-state.compact-empty) {
+  padding: var(--sp-md) var(--sp-sm);
 }
 </style>
