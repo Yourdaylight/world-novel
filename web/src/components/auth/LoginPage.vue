@@ -18,34 +18,108 @@
         {{ error }}
       </div>
 
-      <button
-        class="btn-login"
-        :disabled="loading || !authStore.isAuthEnabled"
-        @click="authStore.login(true)"
-      >
-        <span v-if="loading" class="btn-spinner"></span>
-        <span v-else-if="!authStore.isAuthEnabled">认证未配置</span>
-        <span v-else>前往统一认证中心</span>
-      </button>
+      <!-- JWT mode: invite-code login / registration -->
+      <template v-if="mode === 'jwt'">
+        <input
+          v-model="inviteCode"
+          class="invite-input"
+          type="text"
+          placeholder="输入邀请码（注册 / 登录）"
+          autocomplete="off"
+          :disabled="submitting"
+          @keyup.enter="loginWithCode"
+        />
+        <button
+          class="btn-login"
+          :disabled="submitting || !inviteCode.trim()"
+          @click="loginWithCode"
+        >
+          <span v-if="submitting" class="btn-spinner"></span>
+          <span v-else>注册 / 登录</span>
+        </button>
+        <p class="login-hint">
+          输入邀请码即可注册并登录；注册后可免费阅读全站小说。
+        </p>
+      </template>
 
-      <p class="login-hint">登录即表示同意使用统一身份认证服务</p>
+      <!-- Casdoor mode: redirect to SSO -->
+      <template v-else-if="mode === 'casdoor'">
+        <button
+          class="btn-login"
+          :disabled="loading || !authStore.isAuthEnabled"
+          @click="authStore.login(true)"
+        >
+          <span v-if="loading" class="btn-spinner"></span>
+          <span v-else-if="!authStore.isAuthEnabled">认证未配置</span>
+          <span v-else>前往统一认证中心</span>
+        </button>
+        <p class="login-hint">登录即表示同意使用统一身份认证服务</p>
+      </template>
+
+      <!-- Auth disabled -->
+      <template v-else>
+        <p class="login-hint">当前环境未启用认证（auth_mode=disabled），无需登录。</p>
+      </template>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import client from '@/api/client'
 
 const authStore = useAuthStore()
+const route = useRoute()
+const router = useRouter()
 const loading = ref(true)
+const submitting = ref(false)
 const error = ref('')
+const inviteCode = ref('')
+
+const mode = computed(() => authStore.config?.mode || 'disabled')
+
+function redirectAfterLogin() {
+  // Reader came from a share page — go back and fire the conversion beacon there
+  const fromShare = route.query.from_share
+  if (fromShare) {
+    router.replace({ path: `/read/${fromShare}`, query: { from_share: fromShare } })
+    return
+  }
+  const redirect = route.query.redirect
+  router.replace(typeof redirect === 'string' && redirect ? redirect : '/')
+}
+
+async function loginWithCode() {
+  const code = inviteCode.value.trim()
+  if (!code) return
+  submitting.value = true
+  error.value = ''
+  try {
+    const { data } = await client.post('/auth/login', { invite_code: code })
+    authStore.setToken(data.access_token)
+    await authStore.fetchMe()
+    redirectAfterLogin()
+  } catch (e: any) {
+    const status = e.response?.status
+    if (status === 401) {
+      error.value = '邀请码无效或已被停用'
+    } else if (status === 429) {
+      error.value = '尝试过于频繁，请稍后再试'
+    } else {
+      error.value = e.response?.data?.detail || '登录失败，请重试'
+    }
+  } finally {
+    submitting.value = false
+  }
+}
 
 onMounted(async () => {
   try {
     await authStore.loadConfig()
-    if (!authStore.isAuthEnabled) {
-      error.value = '当前未启用统一认证，请联系管理员。'
+    if (mode.value === 'casdoor' && !authStore.isAuthEnabled) {
+      error.value = '统一认证未配置，请联系管理员。'
     }
   } catch {
     error.value = '认证配置加载失败，请刷新页面重试。'
@@ -159,6 +233,24 @@ onMounted(async () => {
   color: var(--text-muted);
   margin: 0;
   text-align: center;
+}
+
+.invite-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-void);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--fs-base);
+  outline: none;
+  transition: border-color var(--duration-fast) ease;
+
+  &:focus {
+    border-color: var(--accent-ember);
+  }
 }
 
 @keyframes spin {

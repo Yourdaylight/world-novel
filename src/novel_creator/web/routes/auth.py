@@ -38,6 +38,7 @@ from novel_creator.web.auth_deps import (
     AuthUser,
 )
 from ..sidecar_client import get_sidecar
+from ..rate_limit import auth_limiter, enforce
 
 router = APIRouter()
 
@@ -79,8 +80,10 @@ class QuotaResponse(BaseModel):
 
 
 @router.post("/auth/login", response_model=LoginResponse)
-async def login(req: LoginRequest):
+async def login(req: LoginRequest, request: Request):
     """邀请码登录 - 验证邀请码，返回JWT和额度信息。"""
+    # 注册/登录防滥用：单 IP 频率限制 (§4.6)
+    enforce(auth_limiter, request, scope="auth_login")
     code = req.invite_code.strip()
 
     # 1. 验证邀请码

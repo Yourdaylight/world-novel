@@ -80,6 +80,18 @@ install: ## 安装所有依赖 (Python + Node)
 build: ## 构建前端
 	cd web && npm run build
 
+docs-install: ## 安装文档站依赖 (docs-site)
+	cd docs-site && npm install
+
+docs-dev: ## 文档站开发模式 (VitePress dev server)
+	cd docs-site && npm run docs:dev
+
+docs-build: ## 构建文档站 → docs-site/dist (纯静态, 可独立部署)
+	cd docs-site && npm run docs:build
+
+docs-api: ## 从 OpenAPI 重新生成 API 参考页
+	uv run python docs-site/scripts/gen_api_reference.py
+
 build-full: ## 完整构建 (依赖 + 前端 + 后端验证)
 	@$(MAKE) install
 	@$(MAKE) build

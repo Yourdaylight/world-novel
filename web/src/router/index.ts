@@ -28,6 +28,30 @@ const routes: RouteRecordRaw[] = [
     meta: { public: false },
   },
   {
+    path: '/read/:shareId',
+    name: 'read',
+    component: () => import('@/components/read/ReaderPage.vue'),
+    meta: { public: true },
+  },
+  {
+    path: '/read/:shareId/:chapterIndex',
+    name: 'read-chapter',
+    component: () => import('@/components/read/ReaderPage.vue'),
+    meta: { public: true },
+  },
+  {
+    path: '/shares',
+    name: 'shares',
+    component: () => import('@/components/share/ShareManagePage.vue'),
+    meta: { public: false },
+  },
+  {
+    path: '/bookshelf',
+    name: 'bookshelf',
+    component: () => import('@/components/read/BookshelfPage.vue'),
+    meta: { public: false },
+  },
+  {
     path: '/world/:novelId',
     component: () => import('@/layouts/DashboardLayout.vue'),
     meta: { public: true },
@@ -54,6 +78,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'historian', name: 'historian', component: () => import('@/components/historian/HistorianChat.vue'), meta: { public: false } },
       { path: 'tokens', name: 'tokens', component: () => import('@/components/tokens/TokenPage.vue'), meta: { public: false } },
       { path: 'control', name: 'control', component: () => import('@/components/control/ControlPage.vue'), meta: { public: false } },
+      { path: 'publish', name: 'publish', component: () => import('@/components/publish/PublishPage.vue'), meta: { public: false } },
     ],
   },
 ]
@@ -63,8 +88,8 @@ const router = createRouter({
   routes,
 })
 
-// Auth guard: redirect to login when sidecar auth is enabled and user is not authenticated.
-// The auth store is initialized on app mount; this guard handles direct navigation after that.
+// Auth guard: redirect to login when auth is active (jwt or casdoor) and the
+// user is not authenticated. Public routes (landing, reader pages) stay open.
 router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore()
 
@@ -74,7 +99,7 @@ router.beforeEach((to, _from, next) => {
   }
 
   // Auth disabled or route is public — allow
-  if (!authStore.isAuthEnabled || to.meta?.public) {
+  if (!authStore.authActive || to.meta?.public) {
     return next()
   }
 

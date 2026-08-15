@@ -12,10 +12,27 @@
           <a class="nav-link" @click.prevent="scrollTo('features')">功能</a>
           <a class="nav-link" @click.prevent="scrollTo('worlds')">世界</a>
           <a class="nav-link" @click="router.push('/create')">创建世界</a>
+          <a
+            v-if="authStore.authActive && authStore.isAuthenticated"
+            class="nav-link"
+            @click="router.push('/bookshelf')"
+          >书架</a>
+          <a
+            v-if="authStore.authActive && authStore.isAuthenticated"
+            class="nav-link"
+            @click="router.push('/shares')"
+          >分享管理</a>
+          <a class="nav-link" href="/docs/" target="_blank">文档</a>
+          <a
+            class="nav-link"
+            href="https://github.com/Yourdaylight/world-novel"
+            target="_blank"
+            rel="noopener"
+          >GitHub</a>
         </div>
 
         <div class="nav-actions">
-          <template v-if="authStore.isAuthEnabled">
+          <template v-if="authStore.authActive">
             <template v-if="authStore.isAuthenticated">
               <div class="user-menu" @click="router.push('/profile')">
                 <div v-if="authStore.identity?.avatar" class="user-avatar">
@@ -27,7 +44,7 @@
                 <span class="user-name">{{ authStore.displayName }}</span>
               </div>
             </template>
-            <button v-else class="btn-login" @click="authStore.login()">登录</button>
+            <button v-else class="btn-login" @click="onLogin()">登录</button>
           </template>
           <button class="btn-primary" @click="router.push('/create')">
             开始创作
@@ -149,9 +166,9 @@
           <h2 class="section-title">继续创作或开启新篇</h2>
         </div>
 
-        <div v-if="authStore.isAuthEnabled && !authStore.isAuthenticated" class="auth-prompt">
+        <div v-if="authStore.authActive && !authStore.isAuthenticated" class="auth-prompt">
           <p>登录后即可查看和管理你的世界</p>
-          <button class="btn-primary" @click="authStore.login()">立即登录</button>
+          <button class="btn-primary" @click="onLogin()">立即登录</button>
         </div>
 
         <div v-else v-loading="novelStore.loading" class="worlds-grid">
@@ -261,6 +278,15 @@ const stats = computed(() => {
     totalWords: novels.reduce((sum, n) => sum + (n.word_count || 0), 0),
   }
 })
+
+function onLogin() {
+  // jwt mode uses the built-in invite-code login page; casdoor redirects to SSO
+  if (authStore.config?.mode === 'jwt') {
+    router.push({ name: 'login' })
+  } else {
+    authStore.login()
+  }
+}
 
 function formatNumber(n: number): string {
   if (n >= 10000) return `${(n / 10000).toFixed(1)}万`

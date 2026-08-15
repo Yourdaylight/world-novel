@@ -60,6 +60,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!token.value)
   const isAuthEnabled = computed(() => config.value?.sidecar_enabled === true)
+  // True whenever any auth mode is active (jwt or casdoor) — used by the
+  // router guard and nav to decide login enforcement / UI.
+  const authActive = computed(() => !!config.value && config.value.mode !== 'disabled')
   const displayName = computed(() => {
     return identity.value?.display_name || identity.value?.username || '用户'
   })
@@ -176,6 +179,7 @@ export const useAuthStore = defineStore('auth', () => {
     loading,
     isAuthenticated,
     isAuthEnabled,
+    authActive,
     displayName,
     loadConfig,
     setToken,

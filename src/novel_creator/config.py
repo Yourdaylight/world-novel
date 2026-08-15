@@ -87,6 +87,14 @@ class Settings(BaseSettings):
     public_origin: str = "http://localhost:8000"  # used for sidecar callback / login URLs
     auth_enabled: bool = False  # legacy compat: auth_enabled=true → casdoor mode
 
+    # ── Sharing & public reading (Milestone 15, Requirement B) ──
+    share_trial_default: int = 3          # default trial chapters for new shares
+    share_watermark: bool = False         # append reader watermark to chapter bodies
+    share_rate_limit: int = 60            # public share requests / min / IP
+
+    # ── Publishing (Milestone 15, Requirement A) ──
+    sensitive_words_path: str = ""        # custom sensitive word list path (optional)
+
     @model_validator(mode="after")
     def validate_auth(self) -> "Settings":
         if self.auth_enabled and self.auth_mode == "jwt":

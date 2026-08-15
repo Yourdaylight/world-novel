@@ -20,7 +20,7 @@
           <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
         </button>
 
-        <div v-if="authStore.isAuthEnabled" class="user-area">
+        <div v-if="authStore.authActive" class="user-area">
           <template v-if="authStore.isAuthenticated">
             <el-dropdown trigger="click" popper-class="dashboard-user-dropdown">
               <div class="user-trigger" tabindex="0">
@@ -203,6 +203,7 @@ const tabs = [
   { name: 'timeline',    label: '大纲与时间线' },
   { name: 'foreshadows', label: '伏笔' },
   { name: 'chapters',    label: '章节' },
+  { name: 'publish',     label: '发布' },
   { name: 'tokens',      label: 'Token 统计' },
   { name: 'control',     label: '控制台' },
 ]
@@ -214,6 +215,7 @@ const navIcons: Record<string, string> = {
   timeline: '\u23F3',
   foreshadows: '\u2726',
   chapters: '\u25A0',
+  publish: '\u2197',
   tokens: '\u00B6',
   control: '\u2699',
 }

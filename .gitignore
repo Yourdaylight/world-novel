@@ -17,6 +17,10 @@ web/node_modules/
 web/dist/
 web/src/auto-imports.d.ts
 web/src/components.d.ts
+
+# Docs site (VitePress) — dist/ already ignored by top-level pattern
+docs-site/node_modules/
+docs-site/.vitepress/cache/
 .gstack/
 .codebuddy/
 .vscode/

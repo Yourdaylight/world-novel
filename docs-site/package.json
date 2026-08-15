@@ -1,0 +1,15 @@
+{
+  "name": "worldnovel-docs",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "WorldNovel 官网首页 + 使用文档站（纯静态，可独立部署）",
+  "scripts": {
+    "docs:dev": "vitepress dev",
+    "docs:build": "vitepress build",
+    "docs:preview": "vitepress preview"
+  },
+  "devDependencies": {
+    "vitepress": "^1.6.3"
+  }
+}
