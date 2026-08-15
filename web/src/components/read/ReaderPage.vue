@@ -14,6 +14,14 @@
       <RouterLink to="/" class="btn-back">返回首页</RouterLink>
     </div>
 
+    <!-- Network / server error -->
+    <div v-else-if="loadError" class="reader-empty">
+      <div class="empty-icon">⚠️</div>
+      <h2>加载失败</h2>
+      <p>网络异常或服务暂不可用，请稍后重试。</p>
+      <button class="btn-back" @click="init()">重试</button>
+    </div>
+
     <template v-else>
       <!-- Top bar -->
       <header class="reader-bar">
@@ -148,7 +156,6 @@ import {
   reportConversion,
   updateBookshelf,
   getMyProgress,
-  updateMyProgress,
   type ShareMeta,
   type ShareToc,
   type ChapterBody,
@@ -168,6 +175,7 @@ const currentChapter = computed(() => chapterIndex.value >= 0)
 
 const loading = ref(true)
 const notFound = ref(false)
+const loadError = ref(false)
 const meta = ref<ShareMeta | null>(null)
 const toc = ref<ShareToc | null>(null)
 const chapter = ref<ChapterBody | null>(null)
@@ -305,8 +313,12 @@ async function init() {
       await loadChapter(chapterIndex.value)
     }
   } catch (e: any) {
-    if (e.response?.status === 404) notFound.value = true
-    else notFound.value = true
+    if (e.response?.status === 404) {
+      notFound.value = true
+    } else {
+      // 网络错误/服务器错误：不当作"分享不存在"，提示重试
+      loadError.value = true
+    }
   } finally {
     loading.value = false
   }

@@ -67,9 +67,10 @@ server {
     }
 
     # 文档站：独立静态 root，与主应用完全解耦
+    # 注意 cleanUrls 产物为 *.html，需 try_files 映射无扩展名 URL
     location /docs/ {
         alias /opt/world-novel-docs/dist/;
-        try_files $uri $uri/ /docs/index.html;
+        try_files $uri $uri.html $uri/ /docs/404.html;
     }
 }
 # limit_req_zone $binary_remote_addr zone=share:10m rate=60r/m;

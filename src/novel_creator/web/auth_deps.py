@@ -35,11 +35,24 @@ logger = logging.getLogger("novel_creator.web.auth")
 security = HTTPBearer(auto_error=False)
 
 # JWT 配置
-_JWT_SECRET = os.environ.get(
+# 优先使用 settings.jwt_secret（读取 NOVEL_JWT_SECRET，见 .env.example），
+# 向后兼容旧的 WORLDENGINE_JWT_SECRET 环境变量。
+_JWT_SECRET = settings.jwt_secret or os.environ.get(
     "WORLDENGINE_JWT_SECRET", "worldengine-dev-secret-change-in-production"
 )
 _JWT_ALGORITHM = "HS256"
 _JWT_EXPIRE_HOURS = 168  # 7天
+
+# 生产环境默认密钥防护：仍在使用内置默认密钥时大声告警
+_DEFAULT_SECRETS = (
+    "worldengine-dev-secret-change-in-production",
+    "change-me-in-production-to-random-string",
+)
+if _JWT_SECRET in _DEFAULT_SECRETS:
+    logger.warning(
+        "JWT secret is the built-in default. Set NOVEL_JWT_SECRET in production, "
+        "otherwise tokens can be forged by anyone."
+    )
 
 
 @dataclass

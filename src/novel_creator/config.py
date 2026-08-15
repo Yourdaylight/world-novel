@@ -91,6 +91,7 @@ class Settings(BaseSettings):
     share_trial_default: int = 3          # default trial chapters for new shares
     share_watermark: bool = False         # append reader watermark to chapter bodies
     share_rate_limit: int = 60            # public share requests / min / IP
+    trusted_proxies: str = ""             # comma-separated proxy IPs allowed to set XFF
 
     # ── Publishing (Milestone 15, Requirement A) ──
     sensitive_words_path: str = ""        # custom sensitive word list path (optional)

@@ -81,14 +81,15 @@ const inviteCode = ref('')
 const mode = computed(() => authStore.config?.mode || 'disabled')
 
 function redirectAfterLogin() {
-  // Reader came from a share page — go back and fire the conversion beacon there
-  const fromShare = route.query.from_share
-  if (fromShare) {
-    router.replace({ path: `/read/${fromShare}`, query: { from_share: fromShare } })
+  // Reader came from a share page — go back and fire the conversion beacon there.
+  // from_share is user-controlled input: validate format, use named route.
+  const fromShare = typeof route.query.from_share === 'string' ? route.query.from_share : ''
+  if (/^[A-Za-z0-9]{8,32}$/.test(fromShare)) {
+    router.replace({ name: 'read', params: { shareId: fromShare }, query: { from_share: fromShare } })
     return
   }
   const redirect = route.query.redirect
-  router.replace(typeof redirect === 'string' && redirect ? redirect : '/')
+  router.replace(typeof redirect === 'string' && redirect.startsWith('/') ? redirect : '/')
 }
 
 async function loginWithCode() {

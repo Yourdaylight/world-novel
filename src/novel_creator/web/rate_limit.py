@@ -4,6 +4,10 @@ Used for public share endpoints: single instance, 60 requests/min per IP by
 default. Production may additionally enable nginx ``limit_req`` — this module
 is the application-level guarantee so the limit holds regardless of proxy.
 
+Client IP resolution honours ``X-Forwarded-For`` **only** when the direct
+connection comes from a trusted proxy (``NOVEL_TRUSTED_PROXIES``); otherwise
+the header is attacker-controlled and is ignored (needs doc §4.6).
+
 Memory is bounded: stale windows are evicted on each check.
 """
 
@@ -17,28 +21,30 @@ from novel_creator.config import settings
 
 
 class FixedWindowLimiter:
-    """Thread-safe-ish fixed-window counter (asyncio single-thread event loop)."""
+    """Fixed-window counter (asyncio single-thread event loop)."""
 
     def __init__(self, limit: int, window_seconds: int = 60):
         self.limit = limit
         self.window_seconds = window_seconds
-        self._buckets: dict[str, tuple[int, int]] = {}  # key -> (window_start, count)
+        self._buckets: dict[str, tuple[int, int]] = {}  # key -> (window_index, count)
         self._last_prune = 0.0
 
     def allow(self, key: str) -> bool:
         now = time.monotonic()
-        # Opportunistic prune every 60s to bound memory
+        window_index = int(now // self.window_seconds)
+
+        # Opportunistic prune every window; compare WINDOW INDICES (not raw
+        # seconds) so the active window is never evicted.
         if now - self._last_prune > self.window_seconds:
-            cutoff = now - self.window_seconds * 2
+            cutoff_index = window_index - 2
             self._buckets = {
-                k: v for k, v in self._buckets.items() if v[0] > cutoff
+                k: v for k, v in self._buckets.items() if v[0] > cutoff_index
             }
             self._last_prune = now
 
-        window_start = int(now // self.window_seconds)
-        cur_window, count = self._buckets.get(key, (window_start, 0))
-        if cur_window != window_start:
-            cur_window, count = window_start, 0
+        cur_window, count = self._buckets.get(key, (window_index, 0))
+        if cur_window != window_index:
+            cur_window, count = window_index, 0
         count += 1
         self._buckets[key] = (cur_window, count)
         return count <= self.limit
@@ -51,12 +57,32 @@ share_limiter = FixedWindowLimiter(limit=settings.share_rate_limit, window_secon
 auth_limiter = FixedWindowLimiter(limit=20, window_seconds=60)
 
 
+def _trusted_proxies() -> set[str]:
+    return {p.strip() for p in settings.trusted_proxies.split(",") if p.strip()}
+
+
 def client_ip(request: Request) -> str:
-    """Best-effort client IP. Honors X-Forwarded-For first hop (behind nginx)."""
+    """Best-effort client IP.
+
+    X-Forwarded-For is honoured ONLY when the direct peer is a configured
+    trusted proxy; in that case the right-most untrusted hop is the client.
+    Direct (unproxied) deployments therefore cannot be bypassed by spoofing
+    the header.
+    """
+    direct = request.client.host if request.client else "unknown"
+    if direct not in _trusted_proxies():
+        return direct
+
     fwd = request.headers.get("x-forwarded-for", "")
-    if fwd:
-        return fwd.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
+    if not fwd:
+        return direct
+    hops = [h.strip() for h in fwd.split(",") if h.strip()]
+    trusted = _trusted_proxies()
+    # Walk from the right: first hop NOT in trusted set is the client
+    for hop in reversed(hops):
+        if hop not in trusted:
+            return hop
+    return hops[0] if hops else direct
 
 
 def enforce(limiter: FixedWindowLimiter, request: Request, scope: str = "") -> None:

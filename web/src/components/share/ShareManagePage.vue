@@ -270,26 +270,38 @@ function openEdit(s: AuthorShare) {
 
 async function doEdit() {
   if (!editTarget.value) return
-  await patchShare(editTarget.value.share_id, {
-    trial_mode: editForm.trial_mode,
-    trial_value: editForm.trial_value,
-  })
-  editOpen.value = false
-  await load()
+  try {
+    await patchShare(editTarget.value.share_id, {
+      trial_mode: editForm.trial_mode,
+      trial_value: editForm.trial_value,
+    })
+    editOpen.value = false
+    await load()
+  } catch (e: any) {
+    alert(`保存失败：${e.response?.data?.detail || e.message || '请重试'}`)
+  }
 }
 
 async function toggleStatus(s: AuthorShare) {
   const next = s.status === 'active' ? 'disabled' : 'active'
-  await patchShare(s.share_id, { status: next })
-  await load()
+  try {
+    await patchShare(s.share_id, { status: next })
+    await load()
+  } catch (e: any) {
+    alert(`操作失败：${e.response?.data?.detail || e.message || '请重试'}`)
+  }
 }
 
 async function openStats(s: AuthorShare) {
   statsTarget.value = s
   statsData.value = null
   statsOpen.value = true
-  const { data } = await getShareStats(s.share_id)
-  statsData.value = data
+  try {
+    const { data } = await getShareStats(s.share_id)
+    statsData.value = data
+  } catch {
+    statsData.value = { daily: [] }
+  }
 }
 
 async function copyLink(url: string) {

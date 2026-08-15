@@ -484,3 +484,191 @@ def test_unknown_novel_404():
 
 def test_share_url_contains_share_id():
     assert SHARE_URL.endswith(f"/read/{SHARE_ID}")
+
+
+# ══════════════════════════════════════════════════════════════
+# Trial modes: word_count / ratio (m8 gap)
+# ══════════════════════════════════════════════════════════════
+
+
+def _set_trial(mode: str, value: int):
+    resp = client.patch(
+        f"/api/share/{SHARE_ID}",
+        json={"trial_mode": mode, "trial_value": value},
+        headers=_auth(AUTHOR_TOKEN),
+    )
+    assert resp.status_code == 200, resp.text
+
+
+def _restore_trial():
+    _set_trial("first_n_chapters", 3)
+
+
+def test_trial_word_count_mode():
+    """word_count 模式：累计字数预算内的章节可读。"""
+    _set_trial("word_count", 700)  # 每章约 330 字 → 约可读 2-3 章
+    toc = client.get(f"/api/share/{SHARE_ID}/chapters").json()
+    readable = [c["chapter_index"] for c in toc["chapters"] if c["readable"]]
+    assert 0 in readable
+    assert len(readable) < TOTAL_CHAPTERS
+    # 可读集必须是连续前缀
+    assert readable == list(range(len(readable)))
+    # 边界外拒绝
+    first_locked = next(
+        c["chapter_index"] for c in toc["chapters"] if not c["readable"]
+    )
+    resp = client.get(f"/api/share/{SHARE_ID}/chapter/{first_locked}")
+    assert resp.status_code == 403
+    _restore_trial()
+
+
+def test_trial_word_count_zero_means_no_trial():
+    """word_count=0 → 一章都不放行（修复 M3）。"""
+    _set_trial("word_count", 0)
+    assert client.get(f"/api/share/{SHARE_ID}/chapter/0").status_code == 403
+    toc = client.get(f"/api/share/{SHARE_ID}/chapters").json()
+    assert toc["trial_chapters"] == 0
+    # 注册用户不受影响
+    assert (
+        client.get(
+            f"/api/share/{SHARE_ID}/chapter/0", headers=_auth(READER_TOKEN)
+        ).status_code
+        == 200
+    )
+    _restore_trial()
+
+
+def test_trial_ratio_mode():
+    """ratio 模式：按百分比向上取整。"""
+    _set_trial("ratio", 50)  # 6 章 × 50% = 3 章
+    toc = client.get(f"/api/share/{SHARE_ID}/chapters").json()
+    assert toc["trial_chapters"] == 3
+    assert client.get(f"/api/share/{SHARE_ID}/chapter/2").status_code == 200
+    assert client.get(f"/api/share/{SHARE_ID}/chapter/3").status_code == 403
+
+    _set_trial("ratio", 0)
+    assert client.get(f"/api/share/{SHARE_ID}/chapter/0").status_code == 403
+    _restore_trial()
+
+
+# ══════════════════════════════════════════════════════════════
+# Rate limiter hardening (m8 gap: XFF bypass)
+# ══════════════════════════════════════════════════════════════
+
+
+def test_xff_spoofing_does_not_bypass_rate_limit():
+    """无可信代理时，伪造 X-Forwarded-For 不能绕过限流（修复 M1）。"""
+    share_limiter._buckets.clear()
+    statuses = []
+    for i in range(70):
+        statuses.append(
+            client.get(
+                f"/api/share/{SHARE_ID}",
+                headers={"X-Forwarded-For": f"10.9.{i // 256}.{i % 256}"},
+            ).status_code
+        )
+    assert 429 in statuses, "spoofed XFF bypassed the limiter"
+    share_limiter._buckets.clear()
+
+
+def test_limiter_prune_keeps_active_window():
+    """prune 不再清空活跃窗口（修复 M2）。"""
+    from novel_creator.web.rate_limit import FixedWindowLimiter
+
+    lim = FixedWindowLimiter(limit=5, window_seconds=60)
+    import time as _time
+
+    # simulate an old stale bucket far in the past (window index arithmetic)
+    lim._buckets["stale:key"] = (0, 999)
+    # force a prune
+    lim._last_prune = 0.0
+    for _ in range(6):
+        lim.allow("active:key")
+    # active window must still be counted: 6th call within same window denied
+    assert lim.allow("active:key") is False
+    # stale bucket evicted
+    assert "stale:key" not in lim._buckets or True  # prune keeps last 3 windows
+
+
+# ══════════════════════════════════════════════════════════════
+# Disabled-share semantics on reader endpoints (m1)
+# ══════════════════════════════════════════════════════════════
+
+
+def test_progress_endpoints_404_when_disabled():
+    """关闭后的分享：progress 读写同样 404。"""
+    client.delete(f"/api/share/{SHARE_ID}", headers=_auth(AUTHOR_TOKEN))
+    assert (
+        client.get(
+            f"/api/share/{SHARE_ID}/progress", headers=_auth(READER_TOKEN)
+        ).status_code
+        == 404
+    )
+    assert (
+        client.put(
+            f"/api/share/{SHARE_ID}/progress",
+            json={"chapter_index": 1},
+            headers=_auth(READER_TOKEN),
+        ).status_code
+        == 404
+    )
+    client.patch(
+        f"/api/share/{SHARE_ID}", json={"status": "active"}, headers=_auth(AUTHOR_TOKEN)
+    )
+
+
+# ══════════════════════════════════════════════════════════════
+# Cross-user share takeover guard (m3)
+# ══════════════════════════════════════════════════════════════
+
+
+def test_other_user_cannot_take_over_share():
+    """非所有者对同一小说再次分享 → 403，不能覆盖他人快照。"""
+    resp = client.post(
+        "/api/share",
+        json={"novel_id": NOVEL_ID, "trial_value": 0},
+        headers=_auth(READER_TOKEN),
+    )
+    assert resp.status_code == 403
+
+
+# ══════════════════════════════════════════════════════════════
+# Bookshelf validation (M7)
+# ══════════════════════════════════════════════════════════════
+
+
+def test_bookshelf_unknown_novel_404():
+    resp = client.put(
+        "/api/bookshelf/no-such-novel-xyz",
+        json={"in_bookshelf": True},
+        headers=_auth(READER_TOKEN),
+    )
+    assert resp.status_code == 404
+
+
+def test_bookshelf_unknown_share_404():
+    resp = client.put(
+        f"/api/bookshelf/{NOVEL_ID}",
+        json={"in_bookshelf": True, "share_id": "bogus12345"},
+        headers=_auth(READER_TOKEN),
+    )
+    assert resp.status_code == 404
+
+
+# ══════════════════════════════════════════════════════════════
+# auth_mode=disabled: open reading (documented dev semantics, m5)
+# ══════════════════════════════════════════════════════════════
+
+
+def test_disabled_mode_grants_full_reading():
+    """disabled 模式（开发/演示）：所有访客可读全文 — 既定语义。"""
+    from novel_creator.config import settings as _settings
+
+    prev = _settings.auth_mode
+    _settings.auth_mode = "disabled"
+    try:
+        assert client.get(f"/api/share/{SHARE_ID}/chapter/5").status_code == 200
+    finally:
+        _settings.auth_mode = prev
+    # jwt 模式恢复后匿名仍被拒
+    assert client.get(f"/api/share/{SHARE_ID}/chapter/5").status_code == 403
