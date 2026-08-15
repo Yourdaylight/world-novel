@@ -6,6 +6,10 @@ import { defineConfig } from 'vitepress'
 //   DOCS_BASE=/world-novel/  GitHub Pages（仓库名路径）
 const base = process.env.DOCS_BASE || '/docs/'
 
+// cleanUrls（无扩展名 URL）需要服务器支持 .html 回退（nginx try_files）。
+// GitHub Pages 等纯静态托管不支持 → 构建时关闭：DOCS_CLEAN_URLS=false
+const cleanUrls = process.env.DOCS_CLEAN_URLS !== 'false'
+
 export default defineConfig({
   lang: 'zh-CN',
   title: 'WorldNovel',
@@ -14,7 +18,7 @@ export default defineConfig({
   // 纯静态产物（docs-site/dist），任意静态服务器可直接托管，无后端依赖
   outDir: 'dist',
   emptyOutDir: true,
-  cleanUrls: true,
+  cleanUrls,
   lastUpdated: true,
   // 文档中的本地服务地址示例不参与死链检查
   ignoreDeadLinks: [/^https?:\/\/localhost/, /^https?:\/\/127\.0\.0\.1/],
@@ -32,6 +36,7 @@ export default defineConfig({
       { text: '指南', link: '/guide/quickstart', activeMatch: '/guide/' },
       { text: 'API 参考', link: '/reference/api', activeMatch: '/reference/' },
       { text: '产品文档', link: '/product/', activeMatch: '/product/' },
+      { text: 'FAQ', link: '/guide/faq' },
       {
         text: '链接',
         items: [
@@ -39,7 +44,7 @@ export default defineConfig({
             text: 'GitHub 仓库',
             link: 'https://github.com/Yourdaylight/world-novel',
           },
-          { text: '作者工作台', link: '/' },
+          { text: '文档首页', link: '/' },
         ],
       },
     ],
@@ -51,6 +56,7 @@ export default defineConfig({
           items: [
             { text: '快速开始', link: '/guide/quickstart' },
             { text: '认证配置（jwt / casdoor）', link: '/guide/auth' },
+            { text: '常见问题 FAQ', link: '/guide/faq' },
           ],
         },
         {

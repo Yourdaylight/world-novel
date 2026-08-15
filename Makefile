@@ -103,7 +103,7 @@ build-full: ## 完整构建 (依赖 + 前端 + 后端验证)
 docker-init: ## 生成 Docker 部署文件
 	@bash scripts/deploy-docker.sh init
 
-docker-up: ## Docker 启动部署 [PORT=9000]
+docker-up: ## Docker 启动部署 [PORT=8000]
 	@bash scripts/deploy-docker.sh up
 
 docker-build: ## 仅构建 Docker 镜像

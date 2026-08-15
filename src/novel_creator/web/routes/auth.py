@@ -109,7 +109,7 @@ async def login(req: LoginRequest, request: Request):
         await conn.close()
 
     # 5. 生成JWT
-    is_admin = code.startswith("admin")
+    is_admin = code.startswith(settings.admin_code_prefix)
     access_token = create_access_token(code=code, is_admin=is_admin)
 
     # 6. 返回响应

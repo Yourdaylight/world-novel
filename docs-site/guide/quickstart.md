@@ -8,7 +8,7 @@ WorldNovel 是一个多 Agent 长篇小说自动生成系统：每个角色是�
 | 依赖 | 版本 | 说明 |
 |------|------|------|
 | Python | ≥ 3.11 | 推荐用 [uv](https://astral.sh/uv) 管理 |
-| Node.js | ≥ 18 | 前端工作台（Vue 3） |
+| Node.js | ≥ 20.19（推荐 22 LTS） | 前端构建工具 Vite 8 的引擎要求 |
 | LLM API Key | — | OpenAI / OpenRouter / DeepSeek 等兼容接口 |
 
 可选服务（默认不启用）：Qdrant（向量检索）、Neo4j（关系图谱），见 `docker-compose.yml`。
@@ -74,7 +74,21 @@ make prod       # 生产模式：构建前端后单进程服务 :8000
 ## 邀请码与登录
 
 开源版默认 `auth_mode=jwt`：管理员邀请码（以 `admin` 开头的 code）登录后，
-在「Token 管理」创建普通邀请码分发给用户。详见 [认证配置](./auth.md)。
+通过管理接口创建普通邀请码分发给用户：
+
+```bash
+# 管理员登录后，用返回的 access_token 创建邀请码
+curl -X POST http://localhost:8000/api/admin/invite-codes \
+  -H "X-User-Token: $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"max_uses": 10, "initial_tokens": 100000, "initial_requests": 500}'
+```
+
+::: info 首个管理员码
+全新数据库会自动播种默认管理员邀请码 `admin_default`（见迁移脚本 006），
+生产环境请立即创建自己的 admin 码并删除/停用它。
+:::
+
+详见 [认证配置](./auth.md)。
 
 ## 常用命令速查
 

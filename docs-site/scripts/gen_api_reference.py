@@ -20,19 +20,62 @@ OUT = Path(__file__).parent.parent / "reference" / "api.md"
 
 GROUPS = [
     ("认证与额度", ("/api/auth",)),
-    ("分享与阅读", ("/api/share", "/api/bookshelf")),
+    ("分享与阅读", ("/api/share", "/api/shares", "/api/bookshelf")),
     ("成书发布", ("/api/publish",)),
     ("管理后台", ("/api/admin",)),
-    ("史官", ("/api/historian",)),
-    ("生成流水线", ("/api/generat",)),
-    ("章节内容", ("/api/chapter-text", "/api/novel-full")),
+    ("史官 / AI", ("/api/ai",)),
+    ("章节与内容", ("/api/chapter-text", "/api/novel-full", "/api/chapters")),
+    ("角色与 Agent", ("/api/characters", "/api/agents", "/api/actions", "/api/emotions")),
+    (
+        "世界观与故事",
+        (
+            "/api/story",
+            "/api/world",
+            "/api/outline",
+            "/api/foreshadows",
+            "/api/plot-threads",
+            "/api/timeline",
+            "/api/god-decisions",
+            "/api/relationships",
+            "/api/relationship-history",
+            "/api/graph",
+            "/api/token-stats",
+            "/api/memory",
+        ),
+    ),
     ("小说与世界", ("/api/novels", "/api/worlds")),
 ]
 
+# 生成流水线：/api/worlds/{novel_id}/<action> 与全局进度接口
+GENERATION_SUFFIXES = (
+    "/generate",
+    "/resume",
+    "/pause",
+    "/prepare",
+    "/simulate",
+    "/stop-simulation",
+    "/write-chapter",
+    "/rewrite-chapter",
+    "/generation-error",
+    "/simulation-beats",
+    "/simulation-progress",
+)
+
+
+def _match(path: str, prefix: str) -> bool:
+    """边界感知前缀匹配：避免 /api/world 误吞 /api/worlds。"""
+    return path == prefix or path.startswith(prefix + "/")
+
 
 def classify(path: str) -> str:
+    if path in ("/api/progress", "/api/checkpoints"):
+        return "生成流水线"
+    if path.startswith("/api/worlds/{novel_id}/") and any(
+        path.endswith(s) for s in GENERATION_SUFFIXES
+    ):
+        return "生成流水线"
     for name, prefixes in GROUPS:
-        if any(path.startswith(p) for p in prefixes):
+        if any(_match(path, p) for p in prefixes):
             return name
     return "其他"
 
@@ -57,7 +100,8 @@ def main() -> None:
         "# API 参考",
         "",
         "> 本页由 OpenAPI schema 自动生成：`uv run python docs-site/scripts/gen_api_reference.py`",
-        "> 交互式版本：启动服务后访问 `/docs`（Swagger UI）。",
+        "> 交互式 Swagger UI 仅本地开发可用：启动服务后访问 `http://localhost:8000/docs`",
+        "> （生产环境 `/docs/` 路径由本文档站占用）。",
         "",
         "认证方式：请求头 `X-User-Token: <token>` 或 `Authorization: Bearer <token>`。"
         "jwt 模式下 token 来自 `POST /api/auth/login`（邀请码登录）。",

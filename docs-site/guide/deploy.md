@@ -40,7 +40,7 @@ sudo systemctl enable --now world-novel
 
 ```bash
 make docker-build
-make docker-up        # 默认 :9000，见 scripts/deploy-docker.sh
+make docker-up        # 默认 :8000，PORT=xxxx 可覆盖（见 scripts/deploy-docker.sh）
 ```
 
 ## nginx 参考配置
@@ -99,10 +99,15 @@ DOCS_BASE=/ npm run docs:build
 
 ### 3. GitHub Pages
 
+GitHub Pages 是纯静态托管，**不支持无扩展名 URL 的服务端回退**，
+构建时必须关闭 cleanUrls，否则深链 404：
+
 ```bash
-DOCS_BASE=/world-novel/ npm run docs:build
+DOCS_BASE=/world-novel/ DOCS_CLEAN_URLS=false npm run docs:build
 # 将 dist/ 推送到 gh-pages 分支即可
 ```
+
+（nginx 子路径 / 独立子域部署支持 cleanUrls，无需该开关。）
 
 **独立部署冒烟检验**：停掉主应用 uvicorn 服务后，文档站应仍返回 200
 且全部资源加载成功 — 这证明零后端依赖。

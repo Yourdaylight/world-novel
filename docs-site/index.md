@@ -14,7 +14,7 @@ hero:
       link: https://github.com/Yourdaylight/world-novel
     - theme: alt
       text: 使用文档
-      link: /guide/share
+      link: /guide/quickstart
 
 features:
   - icon: 🌍

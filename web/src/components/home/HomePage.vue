@@ -948,8 +948,28 @@ onUnmounted(() => {
 
 /* === Responsive === */
 @media (max-width: 768px) {
+  /* 移动端保留 文档/GitHub 等入口：压缩间距而非隐藏（评审 MINOR-4） */
+  .nav-inner {
+    height: auto;
+    min-height: 56px;
+    flex-wrap: wrap;
+    row-gap: var(--sp-xs);
+    padding: var(--sp-xs) var(--sp-md);
+  }
+
   .nav-links {
-    display: none;
+    order: 3;
+    width: 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: var(--sp-md);
+    padding-bottom: 2px;
+
+    .nav-link {
+      white-space: nowrap;
+      font-size: var(--fs-sm);
+    }
   }
 
   .hero {

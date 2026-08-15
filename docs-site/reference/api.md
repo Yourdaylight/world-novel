@@ -1,7 +1,8 @@
 # API 参考
 
 > 本页由 OpenAPI schema 自动生成：`uv run python docs-site/scripts/gen_api_reference.py`
-> 交互式版本：启动服务后访问 `/docs`（Swagger UI）。
+> 交互式 Swagger UI 仅本地开发可用：启动服务后访问 `http://localhost:8000/docs`
+> （生产环境 `/docs/` 路径由本文档站占用）。
 
 认证方式：请求头 `X-User-Token: <token>` 或 `Authorization: Bearer <token>`。jwt 模式下 token 来自 `POST /api/auth/login`（邀请码登录）。
 
@@ -64,12 +65,60 @@
 | `POST` | `/api/admin/users/{code}/quota/add` | Admin Add User Quota |
 | `GET` | `/api/admin/users/{code}/usage` | Admin Get User Usage |
 
-## 章节内容
+## 史官 / AI
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `POST` | `/api/ai/analyze-proposition` | Api Analyze Proposition |
+| `POST` | `/api/ai/historian-chat` | Api Historian Chat |
+| `POST` | `/api/ai/historian-write-file` | Api Historian Write File |
+
+## 章节与内容
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | `GET` | `/api/chapter-text/{chapter_index}` | Get Chapter Text |
+| `GET` | `/api/chapters` | Get Chapters |
 | `GET` | `/api/novel-full` | Get Novel Full |
+
+## 角色与 Agent
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `GET` | `/api/actions/{chapter_index}` | Get Chapter Actions |
+| `GET` | `/api/agents/{character_id}/files` | Get Agent Files |
+| `GET` | `/api/agents/{character_id}/skills` | List Character Skills |
+| `POST` | `/api/agents/{character_id}/skills` | Create Character Skill |
+| `PUT` | `/api/agents/{character_id}/skills/{skill_id}` | Update Character Skill |
+| `DELETE` | `/api/agents/{character_id}/skills/{skill_id}` | Delete Character Skill |
+| `PUT` | `/api/agents/{character_id}/skills/{skill_id}/toggle` | Toggle Character Skill |
+| `PUT` | `/api/agents/{character_id}/soul` | Update Agent Soul |
+| `GET` | `/api/characters/{character_id}/actions-all` | Get Character All Actions |
+| `GET` | `/api/characters/{character_id}/era-summaries` | Get Era Summaries |
+| `GET` | `/api/characters/{character_id}/full-profile` | Get Character Full Profile |
+| `GET` | `/api/characters/{character_id}/memories` | Get Character Memories |
+| `GET` | `/api/characters/{character_id}/memory-heat` | Get Memory Heat |
+| `GET` | `/api/emotions/{character_id}` | Get Emotion History |
+
+## 世界观与故事
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `GET` | `/api/foreshadows` | Get Foreshadows |
+| `GET` | `/api/god-decisions` | Get God Decisions |
+| `GET` | `/api/graph/path` | Get Graph Path |
+| `GET` | `/api/graph/relationships` | Get Graph Data |
+| `GET` | `/api/graph/social-context/{character_id}` | Get Social Context |
+| `POST` | `/api/memory/consolidate` | Consolidate Memories |
+| `GET` | `/api/outline` | Get Outline |
+| `GET` | `/api/plot-threads` | Get Plot Threads |
+| `GET` | `/api/relationship-history` | Get Relationship History |
+| `GET` | `/api/relationships` | Get Relationships |
+| `GET` | `/api/story` | Get Story |
+| `GET` | `/api/timeline` | Get Timeline |
+| `GET` | `/api/token-stats` | Get Token Stats |
+| `GET` | `/api/world` | Get World |
+| `PUT` | `/api/world` | Api Save World |
 
 ## 小说与世界
 
@@ -84,58 +133,12 @@
 | `GET` | `/api/worlds/{novel_id}/export/markdown` | Api Export Markdown |
 | `GET` | `/api/worlds/{novel_id}/files` | Api List World Files |
 | `GET` | `/api/worlds/{novel_id}/files/download` | Api Download File |
-| `POST` | `/api/worlds/{novel_id}/generate` | Api Start Generation |
-| `GET` | `/api/worlds/{novel_id}/generation-error` | Get Generation Error |
-| `POST` | `/api/worlds/{novel_id}/pause` | Api Pause Generation |
-| `POST` | `/api/worlds/{novel_id}/prepare` | Api Start Preparation |
 | `GET` | `/api/worlds/{novel_id}/propositions` | Api Get Propositions |
-| `POST` | `/api/worlds/{novel_id}/resume` | Api Resume Generation |
-| `POST` | `/api/worlds/{novel_id}/rewrite-chapter` | Api Rewrite Chapter |
-| `POST` | `/api/worlds/{novel_id}/simulate` | Api Start Simulation |
-| `GET` | `/api/worlds/{novel_id}/simulation-beats` | Api List Simulation Beats |
-| `GET` | `/api/worlds/{novel_id}/simulation-progress` | Api Simulation Progress |
 | `GET` | `/api/worlds/{novel_id}/status` | Api World Status |
-| `POST` | `/api/worlds/{novel_id}/stop-simulation` | Api Stop Simulation |
-| `POST` | `/api/worlds/{novel_id}/write-chapter` | Api Write Chapter |
 
 ## 其他
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| `GET` | `/api/actions/{chapter_index}` | Get Chapter Actions |
-| `GET` | `/api/agents/{character_id}/files` | Get Agent Files |
-| `GET` | `/api/agents/{character_id}/skills` | List Character Skills |
-| `POST` | `/api/agents/{character_id}/skills` | Create Character Skill |
-| `PUT` | `/api/agents/{character_id}/skills/{skill_id}` | Update Character Skill |
-| `DELETE` | `/api/agents/{character_id}/skills/{skill_id}` | Delete Character Skill |
-| `PUT` | `/api/agents/{character_id}/skills/{skill_id}/toggle` | Toggle Character Skill |
-| `PUT` | `/api/agents/{character_id}/soul` | Update Agent Soul |
-| `POST` | `/api/ai/analyze-proposition` | Api Analyze Proposition |
-| `POST` | `/api/ai/historian-chat` | Api Historian Chat |
-| `POST` | `/api/ai/historian-write-file` | Api Historian Write File |
-| `GET` | `/api/chapters` | Get Chapters |
-| `GET` | `/api/characters/{character_id}/actions-all` | Get Character All Actions |
-| `GET` | `/api/characters/{character_id}/era-summaries` | Get Era Summaries |
-| `GET` | `/api/characters/{character_id}/full-profile` | Get Character Full Profile |
-| `GET` | `/api/characters/{character_id}/memories` | Get Character Memories |
-| `GET` | `/api/characters/{character_id}/memory-heat` | Get Memory Heat |
-| `GET` | `/api/checkpoints` | Get Checkpoints |
-| `GET` | `/api/emotions/{character_id}` | Get Emotion History |
-| `GET` | `/api/foreshadows` | Get Foreshadows |
-| `GET` | `/api/god-decisions` | Get God Decisions |
-| `GET` | `/api/graph/path` | Get Graph Path |
-| `GET` | `/api/graph/relationships` | Get Graph Data |
-| `GET` | `/api/graph/social-context/{character_id}` | Get Social Context |
 | `GET` | `/api/health` | Health |
-| `POST` | `/api/memory/consolidate` | Consolidate Memories |
-| `GET` | `/api/outline` | Get Outline |
-| `GET` | `/api/plot-threads` | Get Plot Threads |
-| `GET` | `/api/progress` | Get Progress |
-| `GET` | `/api/relationship-history` | Get Relationship History |
-| `GET` | `/api/relationships` | Get Relationships |
-| `GET` | `/api/story` | Get Story |
-| `GET` | `/api/timeline` | Get Timeline |
-| `GET` | `/api/token-stats` | Get Token Stats |
-| `GET` | `/api/world` | Get World |
-| `PUT` | `/api/world` | Api Save World |
 | `GET` | `/{full_path}` | Spa Fallback |

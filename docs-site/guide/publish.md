@@ -51,13 +51,16 @@
 ## API 参考
 
 ```
-POST /api/publish/preflight      # 质量门禁预检 {novel_id, platform?}
-POST /api/publish/export         # 按平台导出，返回 ZIP {novel_id, platform}
-GET  /api/publish/records        # 发布历史（?novel_id 过滤）
-PATCH /api/publish/records/{id}  # 回填平台侧书 ID / 链接（自动标记已发布）
+GET   /api/publish/platforms     # 可用平台与上传规范
+POST  /api/publish/preflight     # 质量门禁预检 {novel_id, platform?}
+POST  /api/publish/export        # 按平台导出，返回 ZIP {novel_id, platform}
+GET   /api/publish/records       # 发布历史（?novel_id 过滤）
+PATCH /api/publish/records/{record_id}  # 回填平台侧书 ID / 链接（自动标记已发布）
+POST  /api/publish/records/{record_id}/confirm  # (L1 预留) 平台无开放 API，当前返回 501
 ```
 
-发布记录状态机：`exporting → exported → published`（失败为 `failed`）。
+发布记录状态机：`exporting → exported → published`（失败为 `failed`；
+`draft` / `publishing` 为 L1 半自动发布预留状态）。
 
 ## 敏感词表
 

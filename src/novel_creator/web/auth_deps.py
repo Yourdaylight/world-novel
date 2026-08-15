@@ -181,7 +181,7 @@ def verify_token(token: str) -> AuthUser:
 
         is_admin = payload.get("is_admin", False)
         # 双重校验：code以"admin"开头的强制设为管理员
-        if code.startswith("admin"):
+        if code.startswith(settings.admin_code_prefix):
             is_admin = True
 
         return AuthUser.from_jwt(code=code, is_admin=is_admin)
@@ -310,7 +310,7 @@ async def check_quota_before_generation(code: str) -> None:
         QuotaCheckError: 402 如果额度不足
     """
     # 管理员不限额度
-    if code.startswith("admin"):
+    if code.startswith(settings.admin_code_prefix):
         return
 
     try:
