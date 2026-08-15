@@ -95,7 +95,7 @@ trap cleanup EXIT INT TERM
 # 后端
 BACKEND_LOG="$LOG_DIR/backend.log"
 info "启动后端 (port ${BACKEND_PORT}, reload=on)..."
-NOVEL_LOG_DIR="$LOG_DIR" uv run uvicorn novel_creator.web.app:app \
+NOVEL_LOG_DIR="$LOG_DIR" uv run uvicorn novel_creator.web.app:app --no-proxy-headers \
   --host 0.0.0.0 --port "$BACKEND_PORT" --reload \
   --reload-dir src \
   --log-level info 2>&1 | tee "$BACKEND_LOG" &

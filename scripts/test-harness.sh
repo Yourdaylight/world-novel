@@ -176,7 +176,7 @@ run_integration() {
     # Try to start server in background
     if command -v uv &>/dev/null; then
       (
-        uv run uvicorn novel_creator.web.app:app --host 127.0.0.1 --port "$PORT" &
+        uv run uvicorn novel_creator.web.app:app --host 127.0.0.1 --port "$PORT" --no-proxy-headers &
         SERVER_PID=$!
         sleep 5
         # Run smoke test

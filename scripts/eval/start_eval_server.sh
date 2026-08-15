@@ -19,4 +19,4 @@ cd "$EVAL_DIR"
 uv run --project "$ROOT_DIR" python "$ROOT_DIR/scripts/eval/seed_demo_novel.py" --chapters 12
 
 echo "→ eval server at http://127.0.0.1:8123 (data: $EVAL_DIR)"
-exec uv run --project "$ROOT_DIR" uvicorn novel_creator.web.app:app --host 127.0.0.1 --port 8123
+exec uv run --project "$ROOT_DIR" uvicorn novel_creator.web.app:app --host 127.0.0.1 --port 8123 --no-proxy-headers

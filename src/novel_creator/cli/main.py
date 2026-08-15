@@ -706,7 +706,13 @@ def web(
     """启动Web仪表板"""
     import uvicorn
     console.print(f"[bold blue]🌐 启动Web仪表板: http://{host}:{port}[/]")
-    uvicorn.run("novel_creator.web.app:app", host=host, port=port, reload=False)
+    # proxy_headers=False: 让 X-Forwarded-For 的信任判定集中在应用层
+    # (rate_limit.client_ip + NOVEL_TRUSTED_PROXIES)，避免 uvicorn 提前重写
+    # request.client.host 导致限流可被 XFF 伪造绕过（评审 M1）
+    uvicorn.run(
+        "novel_creator.web.app:app",
+        host=host, port=port, reload=False, proxy_headers=False,
+    )
 
 
 # ======================================================================

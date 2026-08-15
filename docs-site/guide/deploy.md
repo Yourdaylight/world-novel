@@ -26,7 +26,8 @@ After=network.target
 
 [Service]
 WorkingDirectory=/opt/world-novel
-ExecStart=/opt/world-novel/.venv/bin/uvicorn novel_creator.web.app:app --host 127.0.0.1 --port 8000
+ExecStart=/opt/world-novel/.venv/bin/uvicorn novel_creator.web.app:app --host 127.0.0.1 --port 8000 --no-proxy-headers
+# --no-proxy-headers: XFF 信任判定由应用层 NOVEL_TRUSTED_PROXIES 控制（安全加固）
 Restart=always
 EnvironmentFile=/opt/world-novel/.env
 
@@ -65,7 +66,6 @@ server {
         limit_req zone=share burst=10 nodelay;
         proxy_pass http://127.0.0.1:8000;
     }
-
     # 文档站：独立静态 root，与主应用完全解耦
     # 注意 cleanUrls 产物为 *.html，需 try_files 映射无扩展名 URL
     location /docs/ {
@@ -75,6 +75,14 @@ server {
 }
 # limit_req_zone $binary_remote_addr zone=share:10m rate=60r/m;
 ```
+
+::: warning 限流与 X-Forwarded-For 信任
+应用内限流按客户端 IP 计数。uvicorn 以 `--no-proxy-headers` 启动（不做 XFF 重写），
+应用层只信任 `NOVEL_TRUSTED_PROXIES` 列出的代理地址发来的 `X-Forwarded-For`。
+nginx 部署在反代场景请在 `.env` 设置 `NOVEL_TRUSTED_PROXIES=127.0.0.1`
+（即代理自身地址），否则所有访客会被识别为代理 IP。直连部署留空即可，
+伪造 XFF 头无法绕过限流。
+:::
 
 ## 文档站独立部署
 

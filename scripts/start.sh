@@ -74,10 +74,10 @@ info "Step 1/5 · 环境检查..."
 # Python 工具链
 if command -v uv &>/dev/null; then
   PY_CMD="uv run python"
-  PY_MAIN="uv run uvicorn novel_creator.web.app:app"
+  PY_MAIN="uv run uvicorn novel_creator.web.app:app --no-proxy-headers"
 elif [ -f "$ROOT_DIR/.venv/bin/python" ]; then
   PY_CMD=".venv/bin/python"
-  PY_MAIN=".venv/bin/uvicorn novel_creator.web.app:app"
+  PY_MAIN=".venv/bin/uvicorn novel_creator.web.app:app --no-proxy-headers"
 else
   error "未找到 uv 或 .venv。请先安装: curl -LsSf https://astral.sh/uv/install.sh | sh"
 fi

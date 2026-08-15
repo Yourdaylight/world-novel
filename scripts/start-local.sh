@@ -159,11 +159,11 @@ else
   info "启动后端 (port ${BACKEND_PORT}, reload=on)..."
   if [ "$PY_TOOL" = "uv" ]; then
     uv run uvicorn novel_creator.web.app:app \
-      --host 0.0.0.0 --port "$BACKEND_PORT" --reload \
+      --host 0.0.0.0 --port "$BACKEND_PORT" --reload --no-proxy-headers \
       --reload-dir src 2>&1 &
   else
     .venv/bin/uvicorn novel_creator.web.app:app \
-      --host 0.0.0.0 --port "$BACKEND_PORT" --reload \
+      --host 0.0.0.0 --port "$BACKEND_PORT" --reload --no-proxy-headers \
       --reload-dir src 2>&1 &
   fi
   PIDS+=($!)
