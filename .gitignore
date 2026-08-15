@@ -6,6 +6,7 @@ dist/
 build/
 .env
 data/
+data-eval*/
 *.db
 .venv/
 .pytest_cache/
