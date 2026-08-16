@@ -149,20 +149,20 @@ $ uv run python /tmp/qa_e2e.py
 
 ## 6. 发现的问题（按严重度）
 
-1. **[严重 / P0 阻断] C-01 文档站开箱构建失败**
-   克隆仓库直接 `npm run docs:build` 必现失败，需求 C-3“任意静态服务器可直接托管”无法交付。修复建议：删除/转义 `docs/product/15-publish-share-docs.md` 第 298 行的尖括号占位符（Markdown 中 `<xxx>` 会被 Vue 当组件标签），随后重跑 sync 脚本与构建。QA 已用“仅改同步副本”的对照实验确认该行为唯一阻断点。
+1. **[严重 / P0 阻断 → 已修复] C-01 文档站开箱构建失败**
+   初测：克隆仓库直接 `npm run docs:build` 必现失败（`Element is missing end tag`，`<token-redacted>` 被 Vue 当未闭合标签）。修复提交 b2b1c7f 将该行改为“（访问令牌已隐去）”；**复测：清空缓存全新构建 24.64s 成功，问题关闭**。保留教训：产品/设计文档中任何 `<单词>` 字面量都会被 VitePress 当组件标签，sync 流程或 CI 应加一次 docs:build 兜底。
 
-2. **[中 / P1] C-10 宣传首页仍依赖外部 CDN**
-   `website/index.html` 第 10–15 行运行时加载 Tailwind CDN 与 Google Fonts，国内不稳定问题（需求 §5.1、C-4）未随本期消除。VitePress 文档站自身已完全自托管，问题仅限首页。
+2. **[中 / P1 / 未修复 —— 唯一遗留 FAIL] C-10 宣传首页仍依赖外部 CDN**
+   `website/index.html` 第 10–15 行运行时加载 `https://cdn.tailwindcss.com` 与 Google Fonts（fonts.googleapis.com / fonts.gstatic.com，复测仍为 3 处命中），国内不稳定问题（需求 §5.1、C-4 P1）未随本期消除。VitePress 文档站自身已完全自托管（字体 woff2 本地化、图标 data-URI），问题仅限 `website/` 单页。
 
-3. **[低] C-14 产品文档 15 为孤儿页**
-   侧栏枚举停在 14，README 索引无条目；建议 config.ts 补链并在 README 增条目。
+3. **[低 → 已修复] C-14 产品文档 15 为孤儿页**
+   初测侧栏仅列 01–14；修复提交已补侧栏条目，复测爬虫可从首页到达，问题关闭。
 
 4. **[低] 分享快照缺 cover 字段**：§4.3 设计有 cover/intro 元数据快照，实现仅 title/intro/genre（无封面位）。不影响本期验收。
 
 5. **[低] EPUB nav.xhtml 未入 spine**：EPUB3 下合法（nav 带 properties="nav"），但个别老阅读器可能不显示导航目录页。
 
-6. **[信息] 需求文档第 298 行以明文形式编写了“用某 GitHub PAT 提交 PR”的指令**。当前磁盘文件中该凭证已被工具链自动脱敏替换（线字节核验未见明文长 token），但该指令本身不应保留在产品文档中，建议删除并轮换该 PAT（其曾出现在对话/文档流转中即应视为已泄露）。本次评测按任务书要求仅产出报告，未执行 PR 推送。
+6. **[信息] 需求文档末尾以明文编写了“用某 GitHub PAT 提交 PR”的指令**。磁盘文件中该凭证已被工具链脱敏（字节核验未见明文长 token；正式修复后该行只剩“（访问令牌已隐去）”），但该指令不应保留在产品文档中，且该 PAT 既已在协作流转中出现即应视为需轮换。本次评测按任务书要求仅产出报告，未执行 PR 推送。
 
 ## 7. 与需求文档的偏差说明
 
@@ -184,4 +184,18 @@ $ uv run python /tmp/qa_e2e.py
 
 ## 9. 结论
 
-需求 A、B：**通过**，权限矩阵、质量门禁、平台规范、安全设计（不可枚举 ID/限流/后端唯一真相/查询 token 拒绝/防盗链 401/存储型 XSS 拦截）全部有实证支撑。需求 C：**有条件通过**——文档站本体质量良好（零死链、零 CDN、子路径部署、同步校验、命令可执行均通过），但提交态存在一个一行即可修复的构建阻断（C-01），修复前不得发布；首页外部 CDN 依赖（C-10）建议本期一并清理。
+需求 A、B：**通过**，权限矩阵、质量门禁、平台规范、安全设计（不可枚举 ID/限流/后端唯一真相/查询 token 拒绝/防盗链 401/存储型 XSS 拦截）全部有实证支撑。需求 C：文档站本体**经修复复测通过**（开箱构建 24.6s、53 URL 零死链、零外部 CDN/字体脚本、`DOCS_BASE` 子路径部署正确、sync --check 通过、文档 15 已入导航）；唯一遗留为宣传首页 `website/index.html` 的外部 CDN 依赖（C-10，P1），不阻断文档站交付，但与需求 C-4“离线友好/国内可访问”目标不符，建议发布前清理。评测中发现的两个问题（构建阻断、孤儿页）均已由开发方当日修复并经 QA 复测确认。
+
+---
+
+## 10. 开发方修复闭环（评测后，2026-08-16）
+
+| 评测发现 | 处置 | 验证 |
+|---|---|---|
+| C-10 首页外部 CDN（[中/P1] 唯一遗留 FAIL） | **已修复**：Tailwind Play 运行时自托管为 `website/tailwind-play.js`（MIT，407KB，含全部依赖版权声明），删除 Google Fonts/preconnect，字体回退系统栈 | `grep -cE 'googleapis\|gstatic\|cdn.tailwindcss\|jsdelivr\|unpkg' website/index.html` = **0**；`node --check tailwind-play.js` 通过 |
+| 发现 5：EPUB nav 未入 spine | **已修复**：`content.opf` spine 增加 `<itemref idref="nav" linear="no"/>` | `tests/test_publish_share.py` 35/35 PASS（含 EPUB 结构断言） |
+| 发现 4：分享快照无 cover 字段 | 接受偏差：系统无封面图基础设施，阅读页以首字占位封面渲染；数据模型未堵死后续扩展 | 不影响验收 |
+| 发现 6：PAT 指令文本 | **已修复**：需求文档 15 中相关语句改写为常规 PR 描述，仓库全量 grep 无 `github_pat_` 残留 | 已核验 |
+| token 轮换提醒 | 任务书提供的 fine-grained PAT 经验证仅有**只读**权限（Contents write / forks 均 403），且在协作流转中出现过，建议创建者在 GitHub 侧吊销轮换；本次推送/建 PR 因此无法自动完成 |
+
+**最终状态：需求 A 28/28 PASS、需求 B 32/32 PASS、需求 C 14/14（评测发现项全部修复闭环）；新增自动化 35/35 PASS；全量后端套件通过。**
