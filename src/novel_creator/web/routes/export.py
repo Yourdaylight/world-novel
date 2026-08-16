@@ -16,13 +16,17 @@ from ._helpers import _get_novel_db
 
 from ..auth_deps import require_auth
 
-# 展示面路由：章节文本/全书阅读接口公开
+# 展示面路由：注意正文类接口（chapter-text/novel-full）现在需要登录，
+# 公众阅读的唯一匿名通道是 /api/share/*（随机短码 + 试读边界）。
 router = APIRouter()
 # 控制台路由：导出/文件下载需要登录
 protected_router = APIRouter(dependencies=[Depends(require_auth)])
 
 
-@router.get("/chapter-text/{chapter_index}")
+@router.get(
+    "/chapter-text/{chapter_index}",
+    dependencies=[Depends(require_auth)],
+)
 async def get_chapter_text(chapter_index: int, novel_id: str | None = Query(None)):
     """Get the rendered literary text for a specific chapter."""
     try:
@@ -55,7 +59,7 @@ async def get_chapter_text(chapter_index: int, novel_id: str | None = Query(None
         return {"error": str(e), "title": "", "scenes": [], "full_text": "", "summary": ""}
 
 
-@router.get("/novel-full")
+@router.get("/novel-full", dependencies=[Depends(require_auth)])
 async def get_novel_full(novel_id: str | None = Query(None)):
     """Get the full compiled novel text — all chapters joined."""
     try:

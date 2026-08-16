@@ -21,7 +21,7 @@ from novel_creator.memory.registry import (
 
 from ._helpers import _get_novel_db, logger
 
-from ..auth_deps import require_auth
+from ..auth_deps import require_auth, AuthUser
 
 # 展示面路由：GET 只读接口公开，无需登录
 router = APIRouter()
@@ -35,7 +35,7 @@ class SelectNovelRequest(BaseModel):
     novel_id: str
 
 
-@router.get("/novels")
+@router.get("/novels", dependencies=[Depends(require_auth)])
 async def api_list_novels():
     """List all registered novels with DB-accurate chapter counts."""
     registry = load_registry()
@@ -108,11 +108,14 @@ class CreateWorldRequest(BaseModel):
 
 
 @protected_router.post("/worlds/create")
-async def api_create_world(req: CreateWorldRequest):
+async def api_create_world(req: CreateWorldRequest, user: AuthUser = Depends(require_auth)):
     """Create a new world (register novel + save propositions)."""
     try:
-        # Register novel
-        info = register_novel(title=req.title, genre=req.genre, num_chapters=req.num_chapters)
+        # Register novel, attributing ownership (empty owner for disabled/legacy mode)
+        owner = user.sub or ""
+        info = register_novel(
+            title=req.title, genre=req.genre, num_chapters=req.num_chapters, owner_id=owner,
+        )
 
         # Save propositions to registry
         if req.propositions:

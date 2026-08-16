@@ -476,6 +476,61 @@ CREATE TABLE IF NOT EXISTS user_token_usage_log (
 
 CREATE INDEX IF NOT EXISTS idx_user_usage_code ON user_token_usage_log(code);
 CREATE INDEX IF NOT EXISTS idx_user_usage_created ON user_token_usage_log(created_at);
+
+-- V11: Share links (公开分享 + 注册阅读). Rows live in the GLOBAL db
+-- (settings.db_path), like invite_codes — never inside per-novel db files.
+CREATE TABLE IF NOT EXISTS share_links (
+    id TEXT PRIMARY KEY,                  -- unguessable short code (>=8 chars)
+    novel_id TEXT NOT NULL,
+    owner_id TEXT NOT NULL,               -- AuthUser.sub (invite code or sidecar sub)
+    title_snapshot TEXT DEFAULT '',       -- metadata snapshot frozen at share time
+    intro_snapshot TEXT DEFAULT '',
+    genre_snapshot TEXT DEFAULT '',
+    trial_mode TEXT DEFAULT 'first_n_chapters',  -- first_n_chapters | word_count | ratio
+    trial_value INTEGER DEFAULT 3,        -- chapters / words / percent(0-100) by mode
+    status TEXT DEFAULT 'active',         -- active | disabled
+    view_count INTEGER DEFAULT 0,
+    read_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    disabled_at TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_share_novel ON share_links(novel_id);
+CREATE INDEX IF NOT EXISTS idx_share_owner ON share_links(owner_id);
+CREATE INDEX IF NOT EXISTS idx_share_status ON share_links(status);
+-- One active share per (novel, owner) even under concurrent create requests
+CREATE UNIQUE INDEX IF NOT EXISTS idx_share_active_once
+    ON share_links(novel_id, owner_id) WHERE status = 'active';
+
+-- V11: Reader bookshelf + progress (注册用户书架与阅读进度)
+CREATE TABLE IF NOT EXISTS read_progress (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_code TEXT NOT NULL,
+    share_id TEXT NOT NULL,
+    novel_id TEXT NOT NULL,
+    chapter_index INTEGER DEFAULT 0,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_code, share_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_progress_user ON read_progress(user_code);
+
+-- V11: Publication / export records (成书发布记录)
+CREATE TABLE IF NOT EXISTS publication_records (
+    id TEXT PRIMARY KEY,
+    novel_id TEXT NOT NULL,
+    platform TEXT NOT NULL,               -- fanqie | qimao | txt | epub
+    stage TEXT DEFAULT 'exported',        -- exporting | exported | published | failed
+    target_book_id TEXT DEFAULT '',       -- platform book id (backfilled after manual upload)
+    target_url TEXT DEFAULT '',           -- platform url (backfilled)
+    export_meta TEXT DEFAULT '{}',        -- {chapters, words, format, encoding, cover, warnings}
+    operator TEXT DEFAULT '',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_pub_novel ON publication_records(novel_id);
+CREATE INDEX IF NOT EXISTS idx_pub_created ON publication_records(created_at);
 """
 
 

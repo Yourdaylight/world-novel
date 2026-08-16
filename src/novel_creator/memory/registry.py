@@ -26,6 +26,9 @@ class NovelInfo(BaseModel):
     chapters_total: int = 0
     word_count: int = 0
     propositions: dict = {}  # {"what_is": "...", "where_from": "...", "where_to": "..."}
+    # 创建者（AuthUser.sub）。空串 = 历史遗留/CLI 创建的"无主"小说，
+    # 在单实例可信模型下仍可被注册用户访问/分享。
+    owner_id: str = ""
 
 
 class NovelRegistry(BaseModel):
@@ -73,6 +76,7 @@ def register_novel(
     title: str,
     genre: str,
     num_chapters: int = 0,
+    owner_id: str = "",
 ) -> NovelInfo:
     """Create a new novel directory, register it, and return the NovelInfo."""
     registry = load_registry()
@@ -96,6 +100,7 @@ def register_novel(
         genre=genre,
         db_path=db_path,
         chapters_total=num_chapters,
+        owner_id=owner_id,
     )
 
     registry.novels.append(info)

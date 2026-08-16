@@ -6,6 +6,7 @@
 .PHONY: dev prod install build deploy stop clean help \
         lint test unit smoke harness \
         docker-up docker-down docker-logs docker-smoke \
+        docs-install docs-dev docs-build docs-sync \
         check ci quick-check
 
 # ── 默认目标 ──────────────────────────────────────
@@ -85,6 +86,20 @@ build-full: ## 完整构建 (依赖 + 前端 + 后端验证)
 	@$(MAKE) build
 	@echo ""
 	@echo "✅ Build complete — run 'make smoke' to verify"
+
+# ── 独立文档站 (VitePress, 纯静态零后端依赖) ──────
+
+docs-install: ## 安装文档站依赖
+	cd docs-site && npm install
+
+docs-dev: ## 文档站本地开发
+	cd docs-site && npm run docs:dev
+
+docs-build: ## 构建文档站 (DOCS_BASE=/docs/ 可改部署子路径)
+	cd docs-site && npm run docs:build
+
+docs-sync: ## 同步 docs/product 产品文档到文档站
+	@bash scripts/sync-product-docs.sh
 
 # ── Docker 部署 ───────────────────────────────────
 

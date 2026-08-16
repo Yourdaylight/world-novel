@@ -9,8 +9,10 @@ from fastapi import APIRouter, Depends, Query
 from novel_creator.memory.database import get_connection
 
 from ._helpers import _get_novel_db
+from ..auth_deps import require_auth
 
-# 展示面路由：全部为 GET 只读浏览接口，公开无需登录
+# 展示面路由：GET 只读浏览接口。注意 /actions 含角色行为正文，需要登录——
+# 公众匿名阅读只允许走 /api/share/* 通道。
 router = APIRouter()
 
 
@@ -91,7 +93,7 @@ async def get_chapters(novel_id: str | None = Query(None)):
         return {"error": str(e), "chapters": []}
 
 
-@router.get("/actions/{chapter_index}")
+@router.get("/actions/{chapter_index}", dependencies=[Depends(require_auth)])
 async def get_chapter_actions(chapter_index: int, novel_id: str | None = Query(None)):
     """Get all character actions for a specific chapter."""
     try:

@@ -1,0 +1,16 @@
+{
+  "name": "worldnovel-docs",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "WorldNovel 首页 + 独立文档站（纯静态，零后端依赖）",
+  "scripts": {
+    "docs:dev": "vitepress dev",
+    "docs:build": "vitepress build",
+    "docs:preview": "vitepress preview",
+    "sync:product": "bash ../scripts/sync-product-docs.sh"
+  },
+  "devDependencies": {
+    "vitepress": "^1.6.3"
+  }
+}

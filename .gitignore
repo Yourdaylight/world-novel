@@ -15,6 +15,11 @@ logs/
 # Vue frontend
 web/node_modules/
 web/dist/
+
+# VitePress docs site
+docs-site/node_modules/
+docs-site/.vitepress/cache/
+docs-site/.vitepress/dist/
 web/src/auto-imports.d.ts
 web/src/components.d.ts
 .gstack/

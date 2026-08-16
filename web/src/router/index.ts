@@ -10,6 +10,13 @@ const routes: RouteRecordRaw[] = [
     meta: { public: true },
   },
   {
+    // Public reader — standalone layout, never guarded by workbench auth
+    path: '/read/:shareId',
+    name: 'reader',
+    component: () => import('@/components/reader/ReaderPage.vue'),
+    meta: { public: true },
+  },
+  {
     path: '/',
     name: 'home',
     component: () => import('@/components/home/HomePage.vue'),
@@ -53,6 +60,8 @@ const routes: RouteRecordRaw[] = [
       { path: 'chapters', name: 'chapters', component: () => import('@/components/chapters/ChaptersPage.vue'), meta: { public: true } },
       { path: 'historian', name: 'historian', component: () => import('@/components/historian/HistorianChat.vue'), meta: { public: false } },
       { path: 'tokens', name: 'tokens', component: () => import('@/components/tokens/TokenPage.vue'), meta: { public: false } },
+      { path: 'publish', name: 'publish', component: () => import('@/components/publish/PublishPage.vue'), meta: { public: false } },
+      { path: 'share', name: 'share', component: () => import('@/components/share/ShareManager.vue'), meta: { public: false } },
       { path: 'control', name: 'control', component: () => import('@/components/control/ControlPage.vue'), meta: { public: false } },
     ],
   },

@@ -34,12 +34,32 @@ logger = logging.getLogger("novel_creator.web.auth")
 # HTTP Bearer security scheme (for Authorization header)
 security = HTTPBearer(auto_error=False)
 
-# JWT 配置
-_JWT_SECRET = os.environ.get(
-    "WORLDENGINE_JWT_SECRET", "worldengine-dev-secret-change-in-production"
+# JWT 配置（WORLDENGINE_JWT_SECRET 优先，其次 NOVEL_JWT_SECRET，均缺省为开发默认值）
+_JWT_DEV_DEFAULT = "worldengine-dev-secret-change-in-production"
+_JWT_SECRET = (
+    os.environ.get("WORLDENGINE_JWT_SECRET")
+    or (settings.jwt_secret if settings.jwt_secret != _JWT_DEV_DEFAULT else "")
+    or _JWT_DEV_DEFAULT
 )
 _JWT_ALGORITHM = "HS256"
 _JWT_EXPIRE_HOURS = 168  # 7天
+
+
+def ensure_secure_jwt_secret() -> bool:
+    """Rotate the well-known dev secret to an ephemeral random one at startup.
+
+    Any deployment that did not set WORLDENGINE_JWT_SECRET would otherwise
+    share a public signing key (anyone could forge admin tokens). Rotating to
+    a process-local random key fails safe: tokens are still verifiable while
+    the process runs, but universal forgery is impossible. Returns True when
+    the secret was rotated (caller logs a loud warning).
+    """
+    global _JWT_SECRET
+    if _JWT_SECRET != _JWT_DEV_DEFAULT:
+        return False
+    import secrets as _secrets
+    _JWT_SECRET = _secrets.token_hex(32)
+    return True
 
 
 @dataclass
@@ -278,6 +298,32 @@ async def optional_auth(request: Request) -> AuthUser | None:
         return await _verify_sidecar(token)
 
     # Default: jwt mode — strict JWT verification, no fallback
+    try:
+        return verify_token(token)
+    except HTTPException:
+        return None
+
+
+async def optional_auth_header(request: Request) -> AuthUser | None:
+    """Like optional_auth, but ignores ``?token=`` query parameter.
+
+    Public share endpoints must not accept credentials from the URL
+    (they leak into access logs / Referer headers).
+    """
+    if settings.auth_mode == "disabled":
+        return AuthUser(sub="anonymous", username="anonymous", token="")
+
+    token = request.headers.get("X-User-Token", "").strip()
+    if not token:
+        auth = request.headers.get("Authorization", "").strip()
+        if auth.startswith("Bearer "):
+            token = auth[7:].strip()
+    if not token:
+        return None
+
+    if settings.auth_mode == "casdoor":
+        return await _verify_sidecar(token)
+
     try:
         return verify_token(token)
     except HTTPException:

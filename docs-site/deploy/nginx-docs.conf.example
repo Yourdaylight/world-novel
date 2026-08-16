@@ -1,0 +1,31 @@
+# WorldNovel 文档站独立部署示例（与主应用零耦合）
+#
+# 方案一：主站子路径 /docs/（构建时 DOCS_BASE=/docs/）
+#   cd docs-site && npm install && DOCS_BASE=/docs/ npm run docs:build
+#
+# 注意：alias 与 location 必须同时以 / 结尾，少一个尾斜杠都会退化为
+# 经典的 alias 路径穿越配置。
+server {
+    listen 80;
+    server_name world-novel.example.com;
+
+    location ^~ /docs/ {
+        alias /opt/world-novel/docs-site/.vitepress/dist/;
+        index index.html;
+        try_files $uri $uri.html $uri/ =404;
+        access_log off;
+        expires 1h;
+    }
+}
+
+# 方案二：独立子域（构建时 DOCS_BASE=/）
+#   cd docs-site && npm install && npm run docs:build
+server {
+    listen 80;
+    server_name docs.world-novel.example.com;
+    root /opt/world-novel/docs-site/.vitepress/dist;
+    index index.html;
+    location / {
+        try_files $uri $uri.html $uri/ /index.html;
+    }
+}

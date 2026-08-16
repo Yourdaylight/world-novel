@@ -17,7 +17,7 @@ from novel_creator.memory.registry import (
     get_novel_by_id,
     update_novel_status,
 )
-from novel_creator.web.auth_deps import optional_auth, AuthUser
+from novel_creator.web.auth_deps import optional_auth, require_auth, AuthUser
 
 from ._helpers import _get_novel_db
 
@@ -63,7 +63,7 @@ async def _clear_generation_data(db_path: str) -> None:
 async def api_start_generation(
     novel_id: str,
     req: GenerateRequest,
-    auth: AuthUser | None = Depends(optional_auth),
+    auth: AuthUser = Depends(require_auth),
 ):
     """Start novel generation (async, progress via WebSocket)."""
     try:
@@ -219,7 +219,7 @@ async def api_start_generation(
         return {"ok": False, "error": str(e)}
 
 
-@router.post("/worlds/{novel_id}/resume")
+@router.post("/worlds/{novel_id}/resume", dependencies=[Depends(require_auth)])
 async def api_resume_generation(novel_id: str, req: GenerateRequest):
     """Resume generation from last checkpoint."""
     try:
@@ -366,7 +366,7 @@ async def api_resume_generation(novel_id: str, req: GenerateRequest):
         return {"ok": False, "error": str(e)}
 
 
-@router.post("/worlds/{novel_id}/pause")
+@router.post("/worlds/{novel_id}/pause", dependencies=[Depends(require_auth)])
 async def api_pause_generation(novel_id: str):
     """Pause a running generation (will stop after current chapter completes)."""
     try:
@@ -391,7 +391,7 @@ class WriteChapterRequest(BaseModel):
 async def api_write_chapter(
     novel_id: str,
     req: WriteChapterRequest,
-    auth: AuthUser | None = Depends(optional_auth),
+    auth: AuthUser = Depends(require_auth),
 ):
     """Write a chapter from the simulation timeline (fully decoupled).
 
@@ -622,7 +622,7 @@ class RewriteRequest(BaseModel):
 async def api_rewrite_chapter(
     novel_id: str,
     req: RewriteRequest,
-    auth: AuthUser | None = Depends(optional_auth),
+    auth: AuthUser = Depends(require_auth),
 ):
     """Rewrite a single chapter's narrative text without re-simulating characters.
 
@@ -855,7 +855,7 @@ _preparation_tasks: dict[str, asyncio.Task] = {}
 _simulation_tasks: dict[str, asyncio.Task] = {}
 
 
-@router.post("/worlds/{novel_id}/prepare")
+@router.post("/worlds/{novel_id}/prepare", dependencies=[Depends(require_auth)])
 async def api_start_preparation(novel_id: str, req: GenerateRequest):
     """Run the one-shot preparation graph (director → world → foreshadow → beat_plan).
 

@@ -37,6 +37,7 @@ from novel_creator.web.auth_deps import (
     require_auth,
     AuthUser,
 )
+from novel_creator.web.rate_limit import login_rate_limit
 from ..sidecar_client import get_sidecar
 
 router = APIRouter()
@@ -78,7 +79,8 @@ class QuotaResponse(BaseModel):
     expires_at: Optional[str]
 
 
-@router.post("/auth/login", response_model=LoginResponse)
+@router.post("/auth/login", response_model=LoginResponse,
+             dependencies=[Depends(login_rate_limit)])
 async def login(req: LoginRequest):
     """邀请码登录 - 验证邀请码，返回JWT和额度信息。"""
     code = req.invite_code.strip()

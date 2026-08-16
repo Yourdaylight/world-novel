@@ -29,7 +29,7 @@ _cors_origins = os.environ.get("NOVEL_CORS_ORIGINS", "*").split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins if _cors_origins != ["*"] else ["*"],
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
     expose_headers=["X-Request-Id"],
     max_age=600,
@@ -180,6 +180,13 @@ async def _broadcast_loop():
 async def startup():
     """Start the WebSocket broadcast loop on app startup."""
     asyncio.create_task(_broadcast_loop())
+    if settings.auth_mode == "jwt":
+        from novel_creator.web.auth_deps import ensure_secure_jwt_secret
+        if ensure_secure_jwt_secret():
+            logger.warning(
+                "⚠️ WORLDENGINE_JWT_SECRET 未设置——已为本次运行生成临时随机密钥 "
+                "(重启后所有登录失效)。生产环境请在环境变量中配置持久密钥！"
+            )
     if settings.auth_mode == "casdoor":
         logger.info(
             "🔐 Auth mode=casdoor — sidecar: %s",
