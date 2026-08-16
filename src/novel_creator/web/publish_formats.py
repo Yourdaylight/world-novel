@@ -251,7 +251,9 @@ def build_epub(book: Book) -> bytes:
             '<item id="titlepage" href="titlepage.xhtml" media-type="application/xhtml+xml"/>',
             '<item id="css" href="style.css" media-type="text/css"/>',
         ]
-        spine = ['<itemref idref="titlepage"/>']
+        # nav in spine (linear="no") so older EPUB3 readers still show the TOC page
+        spine = ['<itemref idref="titlepage"/>',
+                 '<itemref idref="nav" linear="no"/>']
         nav_items = [
             '<li><a href="titlepage.xhtml">封面与简介</a></li>'
         ]
