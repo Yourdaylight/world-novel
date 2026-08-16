@@ -60,6 +60,15 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!token.value)
   const isAuthEnabled = computed(() => config.value?.sidecar_enabled === true)
+  // jwt 模式（开源默认）：邀请码即账号，本地表单登录；casdoor 模式走 SSO
+  const isJwtMode = computed(() => config.value?.mode === 'jwt')
+
+  async function loginWithInviteCode(inviteCode: string) {
+    const { data } = await client.post('/auth/login', { invite_code: inviteCode.trim() })
+    setToken(data.access_token)
+    await fetchMe()
+    return data
+  }
   const displayName = computed(() => {
     return identity.value?.display_name || identity.value?.username || '用户'
   })
@@ -176,7 +185,9 @@ export const useAuthStore = defineStore('auth', () => {
     loading,
     isAuthenticated,
     isAuthEnabled,
+    isJwtMode,
     displayName,
+    loginWithInviteCode,
     loadConfig,
     setToken,
     fetchMe,

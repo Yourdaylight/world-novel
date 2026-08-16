@@ -16,6 +16,13 @@ const routes: RouteRecordRaw[] = [
     meta: { public: true },
   },
   {
+    // 需求 B：公开分享阅读页（匿名可试读，注册读全书）
+    path: '/read/:shareId',
+    name: 'reader',
+    component: () => import('@/components/read/ReaderPage.vue'),
+    meta: { public: true },
+  },
+  {
     path: '/create',
     name: 'create',
     component: () => import('@/components/create/CreateWizard.vue'),
@@ -51,6 +58,8 @@ const routes: RouteRecordRaw[] = [
       { path: 'timeline', name: 'timeline', component: () => import('@/components/timeline/TimelinePage.vue'), meta: { public: true } },
       { path: 'foreshadows', name: 'foreshadows', component: () => import('@/components/foreshadows/ForeshadowsPage.vue'), meta: { public: true } },
       { path: 'chapters', name: 'chapters', component: () => import('@/components/chapters/ChaptersPage.vue'), meta: { public: true } },
+      { path: 'publish', name: 'publish', component: () => import('@/components/publish/PublishPage.vue'), meta: { public: false } },
+      { path: 'share', name: 'share', component: () => import('@/components/share/ShareManagerPage.vue'), meta: { public: false } },
       { path: 'historian', name: 'historian', component: () => import('@/components/historian/HistorianChat.vue'), meta: { public: false } },
       { path: 'tokens', name: 'tokens', component: () => import('@/components/tokens/TokenPage.vue'), meta: { public: false } },
       { path: 'control', name: 'control', component: () => import('@/components/control/ControlPage.vue'), meta: { public: false } },
@@ -73,8 +82,10 @@ router.beforeEach((to, _from, next) => {
     return next()
   }
 
+  // jwt（开源默认）与 casdoor 两种模式都要求登录；仅 disabled 模式全开放
+  const authRequired = authStore.isAuthEnabled || authStore.isJwtMode
   // Auth disabled or route is public — allow
-  if (!authStore.isAuthEnabled || to.meta?.public) {
+  if (!authRequired || to.meta?.public) {
     return next()
   }
 

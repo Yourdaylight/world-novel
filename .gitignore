@@ -17,6 +17,11 @@ web/node_modules/
 web/dist/
 web/src/auto-imports.d.ts
 web/src/components.d.ts
+
+# VitePress docs site (生成产物；product/ 与 openapi.json 为构建期同步快照，入库)
+docs-site/node_modules/
+docs-site/.vitepress/dist/
+docs-site/.vitepress/cache/
 .gstack/
 .codebuddy/
 .vscode/

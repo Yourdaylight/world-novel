@@ -75,7 +75,7 @@ check: ## 同 ci
 
 install: ## 安装所有依赖 (Python + Node)
 	uv sync
-	cd web && npm install
+	cd web && npm install --legacy-peer-deps
 
 build: ## 构建前端
 	cd web && npm run build
@@ -85,6 +85,23 @@ build-full: ## 完整构建 (依赖 + 前端 + 后端验证)
 	@$(MAKE) build
 	@echo ""
 	@echo "✅ Build complete — run 'make smoke' to verify"
+
+docs-sync: ## 同步 docs/product 到文档站
+	python3 scripts/sync_product_docs.py
+
+docs-check: ## 校验文档站产品文档与 docs/product 一致
+	python3 scripts/sync_product_docs.py --check
+
+docs-openapi: ## 生成 OpenAPI 快照到文档站
+	uv run python scripts/gen_openapi.py
+
+docs: ## 构建独立文档站 (docs-site/.vitepress/dist)
+	uv run python scripts/gen_openapi.py
+	# docs:build 内部已执行产品文档同步（sync_product_docs.py）
+	cd docs-site && npm install --silent && npm run docs:build
+
+docs-preview: ## 本地预览文档站
+	cd docs-site && npm run docs:preview
 
 # ── Docker 部署 ───────────────────────────────────
 

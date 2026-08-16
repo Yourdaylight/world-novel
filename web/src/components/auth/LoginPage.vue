@@ -18,34 +18,58 @@
         {{ error }}
       </div>
 
-      <button
-        class="btn-login"
-        :disabled="loading || !authStore.isAuthEnabled"
-        @click="authStore.login(true)"
-      >
-        <span v-if="loading" class="btn-spinner"></span>
-        <span v-else-if="!authStore.isAuthEnabled">认证未配置</span>
-        <span v-else>前往统一认证中心</span>
-      </button>
+      <!-- jwt 模式（开源默认）：邀请码登录 / 注册即全文 -->
+      <form v-if="authStore.isJwtMode" class="invite-form" @submit.prevent="onInviteLogin">
+        <input
+          v-model="inviteCode"
+          class="invite-input"
+          type="text"
+          autocomplete="username"
+          placeholder="请输入邀请码"
+          :disabled="submitting"
+          @input="error = ''"
+        />
+        <button class="btn-login" type="submit" :disabled="submitting || !inviteCode.trim()">
+          <span v-if="submitting" class="btn-spinner"></span>
+          <span v-else>登录 / 注册</span>
+        </button>
+        <p class="login-hint">
+          开源版邀请码即账号：输入有效邀请码自动注册并登录，登录后即可阅读全书。
+        </p>
+      </form>
 
-      <p class="login-hint">登录即表示同意使用统一身份认证服务</p>
+      <!-- casdoor 模式：统一认证中心 SSO -->
+      <template v-else-if="authStore.isAuthEnabled">
+        <button class="btn-login" :disabled="loading" @click="authStore.login(true)">
+          <span v-if="loading" class="btn-spinner"></span>
+          <span v-else>前往统一认证中心</span>
+        </button>
+        <p class="login-hint">登录即表示同意使用统一身份认证服务</p>
+      </template>
+
+      <p v-else-if="!loading" class="login-hint">当前未启用认证，请联系管理员。</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
+const route = useRoute()
+const router = useRouter()
 const loading = ref(true)
+const submitting = ref(false)
 const error = ref('')
+const inviteCode = ref('')
 
 onMounted(async () => {
   try {
     await authStore.loadConfig()
-    if (!authStore.isAuthEnabled) {
-      error.value = '当前未启用统一认证，请联系管理员。'
+    if (!authStore.isAuthEnabled && !authStore.isJwtMode) {
+      error.value = '当前未启用认证，请联系管理员。'
     }
   } catch {
     error.value = '认证配置加载失败，请刷新页面重试。'
@@ -53,6 +77,21 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+async function onInviteLogin() {
+  if (!inviteCode.value.trim()) return
+  submitting.value = true
+  error.value = ''
+  try {
+    await authStore.loginWithInviteCode(inviteCode.value)
+    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
+    router.replace(redirect)
+  } catch (e: any) {
+    error.value = e?.response?.data?.detail || '邀请码无效或已失效，请检查后重试'
+  } finally {
+    submitting.value = false
+  }
+}
 </script>
 
 <style scoped lang="scss">
@@ -113,6 +152,33 @@ onMounted(async () => {
   font-size: var(--fs-sm);
 }
 
+.invite-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-sm);
+  width: 100%;
+}
+
+.invite-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 16px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-void);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--fs-base);
+  letter-spacing: 0.05em;
+  outline: none;
+  transition: border-color var(--duration-base) ease;
+
+  &:focus {
+    border-color: var(--border-active);
+    box-shadow: var(--accent-ember-glow);
+  }
+}
+
 .btn-login {
   display: inline-flex;
   align-items: center;
@@ -159,6 +225,7 @@ onMounted(async () => {
   color: var(--text-muted);
   margin: 0;
   text-align: center;
+  line-height: 1.6;
 }
 
 @keyframes spin {

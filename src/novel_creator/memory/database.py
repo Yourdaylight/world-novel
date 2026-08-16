@@ -476,6 +476,64 @@ CREATE TABLE IF NOT EXISTS user_token_usage_log (
 
 CREATE INDEX IF NOT EXISTS idx_user_usage_code ON user_token_usage_log(code);
 CREATE INDEX IF NOT EXISTS idx_user_usage_created ON user_token_usage_log(created_at);
+
+-- V11: 成书发布记录 (publication records — lives in the global DB)
+CREATE TABLE IF NOT EXISTS publication_records (
+    id TEXT PRIMARY KEY,
+    novel_id TEXT NOT NULL,
+    platform TEXT NOT NULL,              -- fanqie | qimao | txt | epub
+    stage TEXT DEFAULT 'exported',       -- exported | published | failed
+    target_book_id TEXT DEFAULT '',      -- 平台侧书 ID（发布后回填）
+    target_url TEXT DEFAULT '',          -- 平台侧链接（发布后回填）
+    export_meta TEXT DEFAULT '{}',       -- JSON {chapters, words, format, encoding}
+    operator TEXT DEFAULT '',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_publication_novel ON publication_records(novel_id);
+CREATE INDEX IF NOT EXISTS idx_publication_created ON publication_records(created_at);
+
+-- V11: 公开分享链接 (share links — lives in the global DB)
+CREATE TABLE IF NOT EXISTS share_links (
+    id TEXT PRIMARY KEY,                 -- 不可枚举随机短码 (>=10 chars)
+    novel_id TEXT NOT NULL,
+    owner_id TEXT NOT NULL,              -- 作者标识 (JWT code / sidecar sub)
+    title TEXT DEFAULT '',
+    author TEXT DEFAULT '',
+    intro TEXT DEFAULT '',
+    genre TEXT DEFAULT '',
+    cover TEXT DEFAULT '',               -- 预留：封面（本期模板 SVG/外链）
+    trial_mode TEXT DEFAULT 'first_n_chapters',  -- first_n_chapters | word_count | ratio
+    trial_value INTEGER DEFAULT 3,       -- first_n_chapters: 章数; word_count: 字数; ratio: 百分比
+    status TEXT DEFAULT 'active',        -- active | disabled
+    view_count INTEGER DEFAULT 0,
+    read_count INTEGER DEFAULT 0,
+    chapter_count INTEGER DEFAULT 0,
+    word_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    disabled_at TIMESTAMP
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_share_novel_owner
+    ON share_links(novel_id, owner_id);
+CREATE INDEX IF NOT EXISTS idx_share_owner ON share_links(owner_id);
+CREATE INDEX IF NOT EXISTS idx_share_novel ON share_links(novel_id);
+CREATE INDEX IF NOT EXISTS idx_share_status ON share_links(status);
+
+-- V11: 阅读进度 / 书架 (registered readers)
+CREATE TABLE IF NOT EXISTS read_progress (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_code TEXT NOT NULL,
+    share_id TEXT NOT NULL,
+    novel_id TEXT DEFAULT '',
+    chapter_index INTEGER DEFAULT 0,
+    last_read_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_code, share_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_read_progress_user ON read_progress(user_code);
 """
 
 
