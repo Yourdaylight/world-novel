@@ -127,6 +127,33 @@ export const useAuthStore = defineStore('auth', () => {
     return fetchMe()
   }
 
+  /**
+   * JWT (open-source) invite-code login — doubles as "registration".
+   * A valid invite code issues a JWT; storing it unlocks full-text reading.
+   * Returns {ok}; throws on an invalid/used code so the caller can surface it.
+   */
+  async function loginWithInviteCode(code: string): Promise<{ ok: boolean }> {
+    const inviteCode = code.trim()
+    if (!inviteCode) throw new Error('请输入邀请码')
+    loading.value = true
+    try {
+      if (!config.value) await loadConfig()
+      const { data } = await client.post('/auth/login', { invite_code: inviteCode })
+      setToken(data.access_token)
+      await fetchMe()
+      return { ok: true }
+    } catch (e: any) {
+      const status = e.response?.status
+      if (status === 401) throw new Error('邀请码无效或已达使用上限')
+      throw new Error(e.response?.data?.detail || '登录失败，请稍后重试')
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /** Whether the active mode is JWT invite-code (vs Casdoor sidecar). */
+  const isJwtMode = computed(() => config.value?.mode === 'jwt')
+
   function login(prompt = false) {
     if (!config.value?.login_url) {
       console.error('[Auth] Login URL not available')
@@ -176,12 +203,14 @@ export const useAuthStore = defineStore('auth', () => {
     loading,
     isAuthenticated,
     isAuthEnabled,
+    isJwtMode,
     displayName,
     loadConfig,
     setToken,
     fetchMe,
     loadIdentity,
     login,
+    loginWithInviteCode,
     logout,
     init,
   }

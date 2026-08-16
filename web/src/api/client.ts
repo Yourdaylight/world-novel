@@ -61,10 +61,15 @@ client.interceptors.response.use(
       console.warn('[API] Unauthorized')
       try {
         const authStore = useAuthStore()
-        authStore.setToken('')
-        // Avoid redirect loop on auth endpoints
+        // A per-request opt-out (used by invite-code login & public reader).
+        const skipRedirect = (error.config as any)?._skipAuthRedirect === true
         const path = window.location.pathname
-        if (!path.startsWith('/api/auth') && !path.startsWith('/login')) {
+        // Never bounce away from the public reader (it must stay usable
+        // anonymously even when a stale token 401s) or from auth/login flows.
+        const publicPath =
+          path.startsWith('/read') || path.startsWith('/login')
+        authStore.setToken('')
+        if (!skipRedirect && !publicPath) {
           window.location.href = '/login'
         }
       } catch {

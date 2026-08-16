@@ -16,13 +16,16 @@ from ._helpers import _get_novel_db
 
 from ..auth_deps import require_auth
 
-# 展示面路由：章节文本/全书阅读接口公开
+# NOTE: chapter/full-text reads were moved to protected_router so that an
+# anonymous visitor can NOT bypass the share trial gate (requirement B-3) by
+# calling /novel-full?novel_id=<slug>. The only anonymous content surface is
+# the share reader (routes/share.py), which enforces the trial window server-side.
 router = APIRouter()
-# 控制台路由：导出/文件下载需要登录
+# 控制台路由：章节正文/全书/导出/文件下载均需登录
 protected_router = APIRouter(dependencies=[Depends(require_auth)])
 
 
-@router.get("/chapter-text/{chapter_index}")
+@protected_router.get("/chapter-text/{chapter_index}")
 async def get_chapter_text(chapter_index: int, novel_id: str | None = Query(None)):
     """Get the rendered literary text for a specific chapter."""
     try:
@@ -55,7 +58,7 @@ async def get_chapter_text(chapter_index: int, novel_id: str | None = Query(None
         return {"error": str(e), "title": "", "scenes": [], "full_text": "", "summary": ""}
 
 
-@router.get("/novel-full")
+@protected_router.get("/novel-full")
 async def get_novel_full(novel_id: str | None = Query(None)):
     """Get the full compiled novel text — all chapters joined."""
     try:

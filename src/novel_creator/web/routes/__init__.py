@@ -15,6 +15,9 @@ from .historian import router as historian_router
 from .export import router as export_router
 from .admin import router as admin_router
 from .export import protected_router as export_protected_router
+from .publish import router as publish_router
+from .share import router as share_router
+from .share import protected_router as share_protected_router
 
 router = APIRouter()
 
@@ -29,3 +32,6 @@ router.include_router(historian_router)
 router.include_router(export_router)
 router.include_router(admin_router)
 router.include_router(export_protected_router)
+router.include_router(publish_router)
+router.include_router(share_router)
+router.include_router(share_protected_router)

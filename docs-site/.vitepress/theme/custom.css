@@ -1,0 +1,27 @@
+/* WorldNovel docs brand — orange accent, system fonts only (offline-friendly,
+   no Google Fonts / external CDN). */
+:root {
+  --vp-c-brand-1: #ea580c;
+  --vp-c-brand-2: #f97316;
+  --vp-c-brand-3: #f97316;
+  --vp-c-brand-soft: rgba(249, 115, 22, 0.14);
+  --vp-button-brand-bg: #f97316;
+  --vp-button-brand-hover-bg: #ea580c;
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(120deg, #f97316, #b45309);
+  --vp-home-hero-image-background-image: linear-gradient(135deg, rgba(249,115,22,.25), rgba(180,83,9,.15));
+  --vp-home-hero-image-filter: blur(48px);
+}
+
+.dark {
+  --vp-c-brand-1: #fb923c;
+  --vp-c-brand-2: #f97316;
+  --vp-c-brand-3: #ea580c;
+}
+
+/* Use native font stacks — no network font fetch. */
+:root {
+  --vp-font-family-base: -apple-system, BlinkMacSystemFont, 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', 'Segoe UI', Roboto, sans-serif;
+  --vp-font-family-mono: 'JetBrains Mono', Menlo, Consolas, monospace;
+}

@@ -476,6 +476,59 @@ CREATE TABLE IF NOT EXISTS user_token_usage_log (
 
 CREATE INDEX IF NOT EXISTS idx_user_usage_code ON user_token_usage_log(code);
 CREATE INDEX IF NOT EXISTS idx_user_usage_created ON user_token_usage_log(created_at);
+
+-- V11: Public share links (公开分享) — lives in the CENTRAL db (settings.db_path)
+CREATE TABLE IF NOT EXISTS share_links (
+    id TEXT PRIMARY KEY,                 -- unguessable share id (>=8 random chars)
+    novel_id TEXT NOT NULL,
+    owner_id TEXT NOT NULL,              -- author identity (jwt code / sidecar sub)
+    title TEXT DEFAULT '',               -- snapshot metadata shown on the share page
+    intro TEXT DEFAULT '',
+    cover TEXT DEFAULT '',
+    meta_json TEXT DEFAULT '{}',         -- {genre, author, chapters_total, words_total}
+    trial_mode TEXT DEFAULT 'first_n_chapters',  -- first_n_chapters | word_count | ratio
+    trial_value INTEGER DEFAULT 3,
+    status TEXT DEFAULT 'active',        -- active | disabled
+    view_count INTEGER DEFAULT 0,
+    read_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    disabled_at TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_share_owner ON share_links(owner_id);
+CREATE INDEX IF NOT EXISTS idx_share_novel ON share_links(novel_id);
+CREATE INDEX IF NOT EXISTS idx_share_status ON share_links(status);
+
+-- V11: Reader bookshelf / reading progress (书架与阅读进度)
+CREATE TABLE IF NOT EXISTS read_progress (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_code TEXT NOT NULL,
+    share_id TEXT NOT NULL,
+    novel_id TEXT NOT NULL,
+    chapter_index INTEGER DEFAULT 0,
+    last_read_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_code, share_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_progress_user ON read_progress(user_code);
+
+-- V11: Book publication/export records (成书发布记录)
+CREATE TABLE IF NOT EXISTS publication_records (
+    id TEXT PRIMARY KEY,
+    novel_id TEXT NOT NULL,
+    platform TEXT NOT NULL,              -- fanqie | qimao | txt | epub | rtf | bundle
+    stage TEXT DEFAULT 'exported',       -- draft|exporting|exported|publishing|published|failed
+    target_book_id TEXT DEFAULT '',
+    target_url TEXT DEFAULT '',
+    export_meta TEXT DEFAULT '{}',
+    operator TEXT DEFAULT '',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_pub_novel ON publication_records(novel_id);
+CREATE INDEX IF NOT EXISTS idx_pub_created ON publication_records(created_at);
 """
 
 

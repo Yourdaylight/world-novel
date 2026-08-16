@@ -21,6 +21,7 @@ class NovelInfo(BaseModel):
     genre: str
     created_at: datetime = Field(default_factory=datetime.now)
     db_path: str
+    owner_id: str = ""  # creator identity (jwt code / sidecar sub); "" = legacy/unclaimed
     status: str = "idle"  # idle / generating / paused / completed
     chapters_completed: int = 0
     chapters_total: int = 0
@@ -73,6 +74,7 @@ def register_novel(
     title: str,
     genre: str,
     num_chapters: int = 0,
+    owner_id: str = "",
 ) -> NovelInfo:
     """Create a new novel directory, register it, and return the NovelInfo."""
     registry = load_registry()
@@ -96,6 +98,7 @@ def register_novel(
         genre=genre,
         db_path=db_path,
         chapters_total=num_chapters,
+        owner_id=owner_id,
     )
 
     registry.novels.append(info)

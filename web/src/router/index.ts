@@ -16,6 +16,12 @@ const routes: RouteRecordRaw[] = [
     meta: { public: true },
   },
   {
+    path: '/read/:shareId',
+    name: 'public-reader',
+    component: () => import('@/components/read/PublicReaderPage.vue'),
+    meta: { public: true },
+  },
+  {
     path: '/create',
     name: 'create',
     component: () => import('@/components/create/CreateWizard.vue'),
@@ -51,6 +57,8 @@ const routes: RouteRecordRaw[] = [
       { path: 'timeline', name: 'timeline', component: () => import('@/components/timeline/TimelinePage.vue'), meta: { public: true } },
       { path: 'foreshadows', name: 'foreshadows', component: () => import('@/components/foreshadows/ForeshadowsPage.vue'), meta: { public: true } },
       { path: 'chapters', name: 'chapters', component: () => import('@/components/chapters/ChaptersPage.vue'), meta: { public: true } },
+      { path: 'publish', name: 'publish', component: () => import('@/components/publish/PublishPage.vue'), meta: { public: false } },
+      { path: 'share', name: 'share', component: () => import('@/components/share/ShareManagePage.vue'), meta: { public: false } },
       { path: 'historian', name: 'historian', component: () => import('@/components/historian/HistorianChat.vue'), meta: { public: false } },
       { path: 'tokens', name: 'tokens', component: () => import('@/components/tokens/TokenPage.vue'), meta: { public: false } },
       { path: 'control', name: 'control', component: () => import('@/components/control/ControlPage.vue'), meta: { public: false } },

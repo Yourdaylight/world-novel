@@ -18,33 +18,70 @@
         {{ error }}
       </div>
 
-      <button
-        class="btn-login"
-        :disabled="loading || !authStore.isAuthEnabled"
-        @click="authStore.login(true)"
-      >
-        <span v-if="loading" class="btn-spinner"></span>
-        <span v-else-if="!authStore.isAuthEnabled">认证未配置</span>
-        <span v-else>前往统一认证中心</span>
-      </button>
+      <!-- JWT (open-source) invite-code login / register -->
+      <template v-if="authStore.isJwtMode">
+        <input
+          v-model="inviteCode"
+          class="invite-input"
+          type="text"
+          placeholder="请输入邀请码"
+          @keyup.enter="submitInvite"
+        />
+        <button class="btn-login" :disabled="loading" @click="submitInvite">
+          <span v-if="loading" class="btn-spinner"></span>
+          <span v-else>邀请码注册 / 登录</span>
+        </button>
+        <p class="login-hint">开源版凭邀请码注册，注册即解锁全部已分享小说</p>
+      </template>
 
-      <p class="login-hint">登录即表示同意使用统一身份认证服务</p>
+      <!-- Casdoor / sidecar -->
+      <template v-else>
+        <button
+          class="btn-login"
+          :disabled="loading || !authStore.isAuthEnabled"
+          @click="authStore.login(true)"
+        >
+          <span v-if="loading" class="btn-spinner"></span>
+          <span v-else-if="!authStore.isAuthEnabled">认证未配置</span>
+          <span v-else>前往统一认证中心</span>
+        </button>
+        <p class="login-hint">登录即表示同意使用统一身份认证服务</p>
+      </template>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
+const route = useRoute()
+const router = useRouter()
 const loading = ref(true)
 const error = ref('')
+const inviteCode = ref('')
+
+async function submitInvite() {
+  error.value = ''
+  loading.value = true
+  try {
+    await authStore.loginWithInviteCode(inviteCode.value)
+    const redirect = (route.query.redirect as string) || '/'
+    router.push(redirect)
+  } catch (e: any) {
+    error.value = e?.message || '登录失败'
+  } finally {
+    loading.value = false
+  }
+}
 
 onMounted(async () => {
   try {
     await authStore.loadConfig()
-    if (!authStore.isAuthEnabled) {
+    // JWT invite-code mode does not require a sidecar; only flag missing sidecar otherwise.
+    if (!authStore.isJwtMode && !authStore.isAuthEnabled) {
       error.value = '当前未启用统一认证，请联系管理员。'
     }
   } catch {
@@ -111,6 +148,18 @@ onMounted(async () => {
   padding: var(--sp-sm) var(--sp-md);
   font-family: var(--font-ui);
   font-size: var(--fs-sm);
+}
+
+.invite-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 16px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-void);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--fs-base);
 }
 
 .btn-login {

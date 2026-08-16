@@ -105,8 +105,9 @@ async def login(req: LoginRequest):
     finally:
         await conn.close()
 
-    # 5. 生成JWT
-    is_admin = code.startswith("admin")
+    # 5. 生成JWT（管理员前缀可配置，默认 admin）
+    from ..auth_deps import is_admin_code
+    is_admin = is_admin_code(code)
     access_token = create_access_token(code=code, is_admin=is_admin)
 
     # 6. 返回响应

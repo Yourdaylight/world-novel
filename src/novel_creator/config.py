@@ -4,8 +4,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from dotenv import load_dotenv
 from pydantic import model_validator
 from pydantic_settings import BaseSettings
+
+# Populate os.environ from .env (CWD-relative, matching pydantic's env_file)
+# so non-NOVEL_-prefixed vars, notably the JWT signing secret
+# WORLDENGINE_JWT_SECRET, are picked up at import. Real env vars win.
+load_dotenv(".env", override=False)
 
 
 class Settings(BaseSettings):

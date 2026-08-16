@@ -86,6 +86,19 @@ build-full: ## 完整构建 (依赖 + 前端 + 后端验证)
 	@echo ""
 	@echo "✅ Build complete — run 'make smoke' to verify"
 
+# ── 独立文档站 (VitePress, 纯静态零后端依赖) ─────────
+docs-install: ## 安装文档站依赖
+	cd docs-site && npm install --legacy-peer-deps
+
+docs-dev: ## 本地预览文档站
+	cd docs-site && npm run docs:dev
+
+docs-build: ## 构建文档站到 docs-site/dist (DOCS_BASE=/docs/ 用于子路径)
+	cd docs-site && npm run docs:build
+
+docs-preview: ## 预览构建产物
+	cd docs-site && npm run docs:preview
+
 # ── Docker 部署 ───────────────────────────────────
 
 docker-init: ## 生成 Docker 部署文件

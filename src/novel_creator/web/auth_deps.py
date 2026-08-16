@@ -34,12 +34,20 @@ logger = logging.getLogger("novel_creator.web.auth")
 # HTTP Bearer security scheme (for Authorization header)
 security = HTTPBearer(auto_error=False)
 
-# JWT 配置
-_JWT_SECRET = os.environ.get(
-    "WORLDENGINE_JWT_SECRET", "worldengine-dev-secret-change-in-production"
+# JWT 配置。优先读取 WORLDENGINE_JWT_SECRET（.env 经 config.load_dotenv 注入），
+# 其次 NOVEL_JWT_SECRET（settings.jwt_secret），最后才是开发默认值。
+_JWT_SECRET = (
+    os.environ.get("WORLDENGINE_JWT_SECRET")
+    or settings.jwt_secret
+    or "worldengine-dev-secret-change-in-production"
 )
 _JWT_ALGORITHM = "HS256"
 _JWT_EXPIRE_HOURS = 168  # 7天
+
+
+def is_admin_code(code: str) -> bool:
+    """Whether an invite code grants admin (configurable prefix, default 'admin')."""
+    return bool(code) and code.startswith(settings.admin_code_prefix or "admin")
 
 
 @dataclass
@@ -167,8 +175,8 @@ def verify_token(token: str) -> AuthUser:
             )
 
         is_admin = payload.get("is_admin", False)
-        # 双重校验：code以"admin"开头的强制设为管理员
-        if code.startswith("admin"):
+        # 双重校验：管理员前缀的 code 强制设为管理员
+        if is_admin_code(code):
             is_admin = True
 
         return AuthUser.from_jwt(code=code, is_admin=is_admin)
@@ -297,7 +305,7 @@ async def check_quota_before_generation(code: str) -> None:
         QuotaCheckError: 402 如果额度不足
     """
     # 管理员不限额度
-    if code.startswith("admin"):
+    if is_admin_code(code):
         return
 
     try:

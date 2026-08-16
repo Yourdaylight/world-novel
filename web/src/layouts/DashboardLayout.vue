@@ -203,6 +203,8 @@ const tabs = [
   { name: 'timeline',    label: '大纲与时间线' },
   { name: 'foreshadows', label: '伏笔' },
   { name: 'chapters',    label: '章节' },
+  { name: 'publish',     label: '发布' },
+  { name: 'share',       label: '分享' },
   { name: 'tokens',      label: 'Token 统计' },
   { name: 'control',     label: '控制台' },
 ]
@@ -214,6 +216,8 @@ const navIcons: Record<string, string> = {
   timeline: '\u23F3',
   foreshadows: '\u2726',
   chapters: '\u25A0',
+  publish: '\u2913',
+  share: '\u2756',
   tokens: '\u00B6',
   control: '\u2699',
 }

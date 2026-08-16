@@ -19,9 +19,9 @@ from novel_creator.memory.registry import (
     update_novel_status,
 )
 
-from ._helpers import _get_novel_db, logger
+from ._helpers import _get_novel_db, logger, user_identity
 
-from ..auth_deps import require_auth
+from ..auth_deps import AuthUser, require_auth
 
 # 展示面路由：GET 只读接口公开，无需登录
 router = APIRouter()
@@ -108,11 +108,14 @@ class CreateWorldRequest(BaseModel):
 
 
 @protected_router.post("/worlds/create")
-async def api_create_world(req: CreateWorldRequest):
+async def api_create_world(req: CreateWorldRequest, user: AuthUser = Depends(require_auth)):
     """Create a new world (register novel + save propositions)."""
     try:
-        # Register novel
-        info = register_novel(title=req.title, genre=req.genre, num_chapters=req.num_chapters)
+        # Register novel with its owner for later share/publish authorization
+        info = register_novel(
+            title=req.title, genre=req.genre,
+            num_chapters=req.num_chapters, owner_id=user_identity(user),
+        )
 
         # Save propositions to registry
         if req.propositions:
