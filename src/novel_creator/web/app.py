@@ -29,8 +29,8 @@ _cors_origins = os.environ.get("NOVEL_CORS_ORIGINS", "*").split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins if _cors_origins != ["*"] else ["*"],
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With", "X-User-Token"],
     expose_headers=["X-Request-Id"],
     max_age=600,
 )
